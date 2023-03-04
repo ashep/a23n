@@ -1,0 +1,40 @@
+syntax = "proto3";
+package a23n.v1;
+option go_package = "github.com/ashep/a23n/sdk/proto/a23n/v1";
+
+message AuthenticateRequest {}
+message AuthenticateResponse {
+  string token = 1;
+  int64 expires = 2;
+}
+
+message AuthorizeRequest {
+  repeated string attrs = 1;
+}
+message AuthorizeResponse {}
+
+message CreateEntityRequest {
+  string secret = 1;
+  string attrs = 2;
+  string note = 3;
+}
+
+message CreateEntityResponse {
+  string id = 1;
+}
+
+message GetEntityRequest {
+  string token = 1;
+}
+
+message GetEntityResponse {
+  string id = 1;
+  repeated string attrs = 2;
+}
+
+service AuthService {
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+  rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
+  rpc GetEntity(GetEntityRequest) returns (GetEntityResponse);
+  rpc CreateEntity(CreateEntityRequest) returns (CreateEntityResponse);
+}
