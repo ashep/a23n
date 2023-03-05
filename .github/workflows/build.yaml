@@ -9,5 +9,5 @@ jobs:
           docker build -t $REGISTRY_USERNAME/a23n:0.0.1 .
           docker push $REGISTRY_USERNAME/a23n:0.0.1
         env:
-          REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD=${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
