@@ -9,13 +9,10 @@ jobs:
         run: docker build -t ${{ secrets.REGISTRY_USERNAME }}/a23n:$GITHUB_REF_NAME .
       - name: login
         run: docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
-        env:
-          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
       - name: push
         run: docker push ${{ secrets.REGISTRY_USERNAME }}/a23n:$GITHUB_REF_NAME
-#      - name: push-latest
-#        if: github.
-#        run: |
-#          docker tag $REGISTRY_USERNAME/a23n:$GITHUB_REF_NAME $REGISTRY_USERNAME/a23n:latest
-#          docker push $REGISTRY_USERNAME/a23n:latest
+      - name: tag-latest
+        if: github.ref_name == "master"
+        run: |
+          docker tag ${{ secrets.REGISTRY_USERNAME }}/a23n:$GITHUB_REF_NAME ${{ secrets.REGISTRY_USERNAME }}/a23n:latest
+          docker push ${{ secrets.REGISTRY_USERNAME }}/a23n:latest
