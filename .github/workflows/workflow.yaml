@@ -12,7 +12,7 @@ jobs:
       - name: push
         run: docker push ${{ secrets.REGISTRY_USERNAME }}/a23n:$GITHUB_REF_NAME
       - name: tag-latest
-        if: github.ref_name == "master"
+        if: github.ref_name == master
         run: |
           docker tag ${{ secrets.REGISTRY_USERNAME }}/a23n:$GITHUB_REF_NAME ${{ secrets.REGISTRY_USERNAME }}/a23n:latest
           docker push ${{ secrets.REGISTRY_USERNAME }}/a23n:latest
