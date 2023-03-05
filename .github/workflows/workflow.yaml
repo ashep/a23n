@@ -5,8 +5,8 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v3
-      - name: publish
-        run: docker build -t $REGISTRY_USERNAME/a23n:$GITHUB_REF_NAME .
+      - name: build
+        run: docker build -t ${{ secrets.REGISTRY_USERNAME }}/a23n:$GITHUB_REF_NAME .
       - name: login
         run: docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
         env:
