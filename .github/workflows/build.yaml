@@ -4,10 +4,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        env:
-          REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD=${{ secrets.REGISTRY_PASSWORD }}
-        run: |
+      - run: |
           docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD
           docker build -t $REGISTRY_USERNAME/a23n:0.0.1 .
           docker push $REGISTRY_USERNAME/a23n:0.0.1
+        env:
+          REGISTRY_USERNAME=${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD=${{ secrets.REGISTRY_PASSWORD }}
