@@ -1,13 +1,13 @@
 on: [ push ]
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - run: |
           docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD
-          docker build -t $REGISTRY_USERNAME/a23n:0.0.1 .
-          docker push $REGISTRY_USERNAME/a23n:0.0.1
+          docker build -t $REGISTRY_USERNAME/a23n:$GITHUB_REF_NAME .
+          docker push $REGISTRY_USERNAME/a23n:$GITHUB_REF_NAME
         env:
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
