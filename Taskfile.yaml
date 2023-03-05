@@ -1,5 +1,8 @@
 version: "3"
 
+dotenv:
+  - .env
+
 vars:
   APP_NAME: a23n
   APP_VERSION: 0.0.1
@@ -14,12 +17,12 @@ tasks:
   migrate:
     desc: Apply db migrations
     cmds:
-      - go run -race -ldflags "{{.BUILD_FLAGS}}" main.go --migrate-up {{.CLI_ARGS}}
+      - go run -ldflags "{{.BUILD_FLAGS}}" main.go --migrate-up {{.CLI_ARGS}}
 
   demigrate:
     desc: Revert db migrations
     cmds:
-      - go run -race -ldflags "{{.BUILD_FLAGS}}" main.go --migrate-down {{.CLI_ARGS}}
+      - go run -ldflags "{{.BUILD_FLAGS}}" main.go --migrate-down {{.CLI_ARGS}}
 
   build:
     desc: Build the application for the current OS and architecture
