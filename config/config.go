@@ -17,7 +17,7 @@ type Database struct {
 }
 
 type Server struct {
-	Addr string `yaml:"listen"`
+	Address string `yaml:"address"`
 }
 
 type Config struct {

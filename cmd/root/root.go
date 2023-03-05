@@ -84,15 +84,23 @@ func New() *cobra.Command {
 			if apiSec != "" {
 				cfg.API.Secret = apiSec
 			}
-
 			apiTokenTTL := os.Getenv("A23N_API_TOKEN_TTL")
 			if apiTokenTTL != "" {
 				t, _ := strconv.Atoi(apiTokenTTL)
 				cfg.API.TokenTTL = t
 			}
+			a, err := api.New(db, cfg.API.Secret, cfg.API.TokenTTL)
+			if err != nil {
+				l.Fatal().Err(err).Msg("")
+				return
+			}
 
-			a := api.New(db, cfg.API.Secret, cfg.API.TokenTTL, l.With().Str("pkg", "api").Logger())
+			srvAddr := os.Getenv("A23N_SERVER_ADDRESS")
+			if srvAddr != "" {
+				cfg.Server.Address = srvAddr
+			}
 			s := server.New(cfg.Server, a, l.With().Str("pkg", "server").Logger())
+
 			if err := s.Run(cmd.Context()); errors.Is(err, http.ErrServerClosed) {
 				l.Info().Msg("server stopped")
 			} else if err != nil {

@@ -82,11 +82,5 @@ func (a *API) CreateEntity(
 		return Entity{}, err
 	}
 
-	a.l.Info().
-		Str("id", id).
-		Str("note", note).
-		Strs("attrs", attrs).
-		Msg("a new entity created")
-
 	return a.GetEntity(ctx, id)
 }
