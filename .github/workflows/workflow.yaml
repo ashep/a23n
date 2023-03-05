@@ -3,11 +3,16 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: |
-          docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD
-          docker build -t $REGISTRY_USERNAME/a23n:$GITHUB_REF_NAME .
-          docker push $REGISTRY_USERNAME/a23n:$GITHUB_REF_NAME
-        env:
-          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: build
+        run: docker build -t ${{ secrets.REGISTRY_USERNAME }}/a23n:$GITHUB_REF_NAME .
+      - name: login
+        run: docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
+      - name: push
+        run: docker push ${{ secrets.REGISTRY_USERNAME }}/a23n:$GITHUB_REF_NAME
+      - name: tag-latest
+        if: github.ref_name == 'master'
+        run: |
+          docker tag ${{ secrets.REGISTRY_USERNAME }}/a23n:$GITHUB_REF_NAME ${{ secrets.REGISTRY_USERNAME }}/a23n:latest
+          docker push ${{ secrets.REGISTRY_USERNAME }}/a23n:latest
