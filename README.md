@@ -1,6 +1,6 @@
 # a23n
 
-A simple authentication and authorization service.
+A simple authentication and authorization gRPC service.
 
 ## Running in Docker
 
@@ -17,11 +17,19 @@ To do.
 
 ## Configuring via environment variables
 
-- *required* **string** `A23N_DB_DSN`. Database source name.
-- *required* **string** `A23N_API_SECRET`. Encryption key.
-- *optional* **int** `A23N_API_TOKEN_TTL`. Default is `86400`.
-- *optional* **int** `A23N_SERVER_ADDRESS`. Default is `localhost:9000`.
+- *required* **string** `A23N_DB_DSN`. PostgreSQL DSN.
+- *required* **string** `A23N_API_SECRET`. Encryption key. A random string of length >=32 chars.
+- *optional* **int** `A23N_API_TOKEN_TTL`. Authentication token time to live. Default is `86400`.
+- *optional* **int** `A23N_SERVER_ADDRESS`. HTTP/gRPC listen address. Default is `localhost:9000`.
 - *optional* **int** `A23N_DEBUG`. Set to `1` to enable debug mode. Any other value being ignored.
+
+## gRPC API
+
+To do.
+
+## HTTP API
+
+To do.
 
 ## To Do
 
@@ -32,7 +40,7 @@ To do.
 
 ## Changelog
 
-### 2023-03-05
+**0.0.1** (2023-03-05)
 
 Initial version.
 
