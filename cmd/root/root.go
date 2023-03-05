@@ -5,15 +5,17 @@ import (
 	"errors"
 	"math/rand"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
-	"github.com/ashep/a23n/api"
-	"github.com/ashep/a23n/server"
 	"github.com/spf13/cobra"
 
+	"github.com/ashep/a23n/api"
 	"github.com/ashep/a23n/config"
 	"github.com/ashep/a23n/logger"
 	"github.com/ashep/a23n/migration"
+	"github.com/ashep/a23n/server"
 )
 
 var (
@@ -26,16 +28,28 @@ var (
 func New() *cobra.Command {
 	cmd := &cobra.Command{
 		Run: func(cmd *cobra.Command, args []string) {
+			var err error
+
 			rand.Seed(time.Now().UnixNano())
 
+			if !debugMode && os.Getenv("A23N_DEBUG") == "1" {
+				debugMode = true
+			}
 			l := logger.New(debugMode)
 
-			cfg, err := config.ParseFromPath(configPath)
-			if err != nil {
-				l.Fatal().Err(err).Msg("failed to load config")
-				return
+			cfg := config.Config{}
+			if configPath != "" {
+				cfg, err = config.ParseFromPath(configPath)
+				if err != nil {
+					l.Fatal().Err(err).Msg("failed to load config")
+					return
+				}
 			}
 
+			dbDSN := os.Getenv("A23N_DB_DSN")
+			if dbDSN != "" {
+				cfg.DB.DSN = dbDSN
+			}
 			if cfg.DB.DSN == "" {
 				l.Fatal().Err(err).Msg("empty db dsn")
 				return
@@ -66,8 +80,27 @@ func New() *cobra.Command {
 				return
 			}
 
-			a := api.New(db, cfg.API.Secret, cfg.API.TokenTTL, l.With().Str("pkg", "api").Logger())
+			apiSec := os.Getenv("A23N_API_SECRET")
+			if apiSec != "" {
+				cfg.API.Secret = apiSec
+			}
+			apiTokenTTL := os.Getenv("A23N_API_TOKEN_TTL")
+			if apiTokenTTL != "" {
+				t, _ := strconv.Atoi(apiTokenTTL)
+				cfg.API.TokenTTL = t
+			}
+			a, err := api.New(db, cfg.API.Secret, cfg.API.TokenTTL)
+			if err != nil {
+				l.Fatal().Err(err).Msg("")
+				return
+			}
+
+			srvAddr := os.Getenv("A23N_SERVER_ADDRESS")
+			if srvAddr != "" {
+				cfg.Server.Address = srvAddr
+			}
 			s := server.New(cfg.Server, a, l.With().Str("pkg", "server").Logger())
+
 			if err := s.Run(cmd.Context()); errors.Is(err, http.ErrServerClosed) {
 				l.Info().Msg("server stopped")
 			} else if err != nil {
@@ -80,7 +113,7 @@ func New() *cobra.Command {
 	cmd.Flags().BoolVar(&migDown, "migrate-down", false, "revert database migrations")
 
 	cmd.PersistentFlags().BoolVarP(&debugMode, "debug", "d", false, "enable debug mode")
-	cmd.PersistentFlags().StringVarP(&configPath, "config", "c", "config.yaml", "path to the config file")
+	cmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "path to the config file")
 
 	return cmd
 }

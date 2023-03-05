@@ -21,8 +21,8 @@ type Server struct {
 }
 
 func New(cfg config.Server, svc *api.API, l zerolog.Logger) *Server {
-	if cfg.Addr == "" {
-		cfg.Addr = "localhost:8080"
+	if cfg.Address == "" {
+		cfg.Address = "localhost:9000"
 	}
 
 	return &Server{
@@ -42,7 +42,7 @@ func (s *Server) Run(ctx context.Context) error {
 	p, h := v1connect.NewAuthServiceHandler(hdl, interceptors)
 	mux.Handle(p, h)
 
-	srv := &http.Server{Addr: s.cfg.Addr, Handler: mux}
+	srv := &http.Server{Addr: s.cfg.Address, Handler: mux}
 
 	go func() {
 		<-ctx.Done()
@@ -51,6 +51,6 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}()
 
-	s.l.Debug().Str("addr", s.cfg.Addr).Msg("starting server")
+	s.l.Debug().Str("addr", s.cfg.Address).Msg("starting server")
 	return srv.ListenAndServe()
 }
