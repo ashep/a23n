@@ -8,8 +8,7 @@ import (
 )
 
 type API struct {
-	Secret   string `yaml:"secret"`
-	TokenTTL int    `yaml:"token_ttl"`
+	TokenTTL int `yaml:"token_ttl"`
 }
 
 type Database struct {
@@ -18,6 +17,7 @@ type Database struct {
 
 type Server struct {
 	Address string `yaml:"address"`
+	Secret  string `yaml:"secret"`
 }
 
 type Config struct {

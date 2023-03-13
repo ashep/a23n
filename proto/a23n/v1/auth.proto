@@ -9,17 +9,28 @@ message AuthenticateResponse {
 }
 
 message AuthorizeRequest {
-  repeated string attrs = 1;
+  repeated string scope = 1;
 }
 message AuthorizeResponse {}
 
 message CreateEntityRequest {
   string secret = 1;
-  string attrs = 2;
+  repeated string scope = 2;
   string note = 3;
 }
 
 message CreateEntityResponse {
+  string id = 1;
+}
+
+message UpdateEntityRequest {
+  string id = 1;
+  string secret = 2;
+  repeated string scope = 3;
+  string note = 4;
+}
+
+message UpdateEntityResponse {
   string id = 1;
 }
 
@@ -29,12 +40,13 @@ message GetEntityRequest {
 
 message GetEntityResponse {
   string id = 1;
-  repeated string attrs = 2;
+  repeated string scope = 2;
 }
 
 service AuthService {
   rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
   rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
-  rpc GetEntity(GetEntityRequest) returns (GetEntityResponse);
   rpc CreateEntity(CreateEntityRequest) returns (CreateEntityResponse);
+  rpc UpdateEntity(UpdateEntityRequest) returns (UpdateEntityResponse);
+  rpc GetEntity(GetEntityRequest) returns (GetEntityResponse);
 }

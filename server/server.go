@@ -32,15 +32,30 @@ func New(cfg config.Server, svc *api.API, l zerolog.Logger) *Server {
 	}
 }
 
+func corsHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, ResponseType")
+
+		if r.Method == "OPTIONS" {
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) Run(ctx context.Context) error {
+	interceptors := connect.WithInterceptors(
+		interceptor.Auth(s.l),
+		interceptor.Log(s.l),
+	)
+
+	p, h := v1connect.NewAuthServiceHandler(handler.New(s.cfg, s.svc, s.l), interceptors)
+
 	mux := http.NewServeMux()
-
-	hdl := handler.New(s.svc, s.l)
-
-	interceptors := connect.WithInterceptors(interceptor.Auth(s.l))
-
-	p, h := v1connect.NewAuthServiceHandler(hdl, interceptors)
-	mux.Handle(p, h)
+	mux.Handle(p, corsHandler(h))
 
 	srv := &http.Server{Addr: s.cfg.Address, Handler: mux}
 

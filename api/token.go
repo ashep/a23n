@@ -9,7 +9,6 @@ import (
 
 type TokenClaims struct {
 	jwt.RegisteredClaims
-	Attrs []string `json:"att"`
 }
 
 func (a *API) CreateToken(e Entity) *jwt.Token {
@@ -23,7 +22,6 @@ func (a *API) CreateToken(e Entity) *jwt.Token {
 			NotBefore: n,
 			ExpiresAt: exp,
 		},
-		Attrs: e.Attrs,
 	})
 }
 
