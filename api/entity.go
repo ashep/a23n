@@ -14,73 +14,95 @@ import (
 type Entity struct {
 	ID     string
 	Secret string
-	Attrs  []string
+	Scope  []string
 	Note   string
+}
+
+func (a *API) CreateEntity(ctx context.Context, secret, note string, scope []string) (string, error) {
+	if len(scope) == 0 {
+		return "", ErrInvalidArg{Msg: "empty scope"}
+	}
+
+	secretHash, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("failed to hash a secret: %w", err)
+	}
+
+	id := uuid.NewString()
+
+	scopeArg := pq.StringArray{}
+	for _, s := range scope {
+		scopeArg = append(scopeArg, s)
+	}
+
+	q := `INSERT INTO entity (id, secret, scope, note) VALUES ($1, $2, $3, $4)`
+	_, err = a.db.ExecContext(ctx, q, id, secretHash, scopeArg, note)
+	if err != nil {
+		return "", err
+	}
+
+	return id, nil
+}
+
+func (a *API) UpdateEntity(ctx context.Context, id, secret, note string, scope []string) error {
+	var err error
+
+	if _, err = uuid.Parse(id); err != nil {
+		return ErrInvalidArg{Msg: fmt.Sprintf("invalid id: %s", err.Error())}
+	}
+
+	if len(scope) == 0 {
+		return ErrInvalidArg{Msg: "empty scope"}
+	}
+
+	scopeArg := pq.StringArray{}
+	for _, s := range scope {
+		scopeArg = append(scopeArg, s)
+	}
+
+	var qr sql.Result
+	if secret != "" {
+		var secretHash []byte
+		if secretHash, err = bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost); err != nil {
+			return fmt.Errorf("failed to hash a secret: %w", err)
+		}
+		qr, err = a.db.ExecContext(ctx, `UPDATE entity SET secret=$1, scope=$2, note=$3 WHERE id=$4`,
+			secretHash, scopeArg, note, id)
+	} else {
+		qr, err = a.db.ExecContext(ctx, `UPDATE entity SET scope=$1, note=$2 WHERE id=$3`, scopeArg, note, id)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if ra, err := qr.RowsAffected(); err != nil {
+		return err
+	} else if ra == 0 {
+		return ErrNotFound
+	}
+
+	return err
 }
 
 func (a *API) GetEntity(ctx context.Context, id string) (Entity, error) {
 	var (
 		secret string
-		attrs  pq.StringArray
+		scope  pq.StringArray
 		note   string
 	)
 
-	row := a.db.QueryRowContext(ctx, `SELECT secret, attrs, note FROM entity WHERE id=$1`, id)
-	if err := row.Scan(&secret, &attrs, &note); errors.Is(err, sql.ErrNoRows) {
+	row := a.db.QueryRowContext(ctx, `SELECT secret, scope, note FROM entity WHERE id=$1`, id)
+	if err := row.Scan(&secret, &scope, &note); errors.Is(err, sql.ErrNoRows) {
 		return Entity{}, ErrNotFound
 	} else if err != nil {
 		return Entity{}, err
 	}
 
-	attrsArg := make([]string, 0)
-	for _, attr := range attrs {
-		attrsArg = append(attrsArg, attr)
+	scopeArg := make([]string, 0)
+	for _, s := range scope {
+		scopeArg = append(scopeArg, s)
 	}
 
-	return Entity{ID: id, Secret: secret, Attrs: attrsArg, Note: note}, nil
-}
-
-func (a *API) CreateEntity(
-	ctx context.Context,
-	adminSecret string,
-	entitySecret string,
-	attrs []string,
-	note string,
-) (Entity, error) {
-	if adminSecret != a.secret {
-		return Entity{}, ErrUnauthorized
-	}
-
-	if len(attrs) == 0 {
-		return Entity{}, ErrInvalidArg{Msg: "empty attributes set"}
-	}
-
-	sec, err := bcrypt.GenerateFromPassword([]byte(entitySecret), bcrypt.DefaultCost)
-	if err != nil {
-		return Entity{}, fmt.Errorf("failed to hash a secret: %w", err)
-	}
-
-	tx, err := a.db.Begin()
-	if err != nil {
-		return Entity{}, err
-	}
-
-	id := uuid.NewString()
-
-	attrsArg := pq.StringArray{}
-	for _, attr := range attrs {
-		attrsArg = append(attrsArg, attr)
-	}
-
-	q := `INSERT INTO entity (id, secret, attrs, note) VALUES ($1, $2, $3, $4)`
-	_, err = tx.ExecContext(ctx, q, id, sec, attrsArg, note)
-	if err != nil {
-		return Entity{}, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return Entity{}, err
-	}
-
-	return a.GetEntity(ctx, id)
+	return Entity{ID: id, Secret: secret, Scope: scopeArg, Note: note}, nil
 }

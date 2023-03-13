@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 
+	"github.com/ashep/a23n/config"
 	"github.com/bufbuild/connect-go"
 	"github.com/rs/zerolog"
 
@@ -11,13 +12,15 @@ import (
 )
 
 type Handler struct {
+	cfg config.Server
 	api *api.API
 	l   zerolog.Logger
 }
 
-func New(svc *api.API, l zerolog.Logger) *Handler {
+func New(cfg config.Server, api *api.API, l zerolog.Logger) *Handler {
 	return &Handler{
-		api: svc,
+		cfg: cfg,
+		api: api,
 		l:   l,
 	}
 }

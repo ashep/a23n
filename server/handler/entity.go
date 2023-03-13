@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
 	"github.com/bufbuild/connect-go"
@@ -26,7 +25,7 @@ func (h *Handler) GetEntity(
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 	}
 
-	return connect.NewResponse(&v1.GetEntityResponse{Id: e.ID, Attrs: e.Attrs}), nil
+	return connect.NewResponse(&v1.GetEntityResponse{Id: e.ID, Scope: e.Scope}), nil
 }
 
 func (h *Handler) CreateEntity(
@@ -38,29 +37,55 @@ func (h *Handler) CreateEntity(
 		return nil, err
 	}
 
-	entitySec := req.Msg.Secret
-	if len(entitySec) < 8 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("secret is too short"))
-	}
-
-	if req.Msg.Attrs == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("empty attrs"))
-	}
-
-	attrs := make([]string, 0)
-	if err := json.Unmarshal([]byte(req.Msg.Attrs), &attrs); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("failed to unmarshal attrs"))
-	}
-
-	e, err := h.api.CreateEntity(ctx, crd.Token, entitySec, attrs, req.Msg.Note)
-	if errors.Is(err, api.ErrUnauthorized) {
+	if crd.Token != h.cfg.Secret {
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
-	} else if errors.Is(err, api.ErrInvalidArg{}) {
+	}
+
+	id, err := h.api.CreateEntity(ctx, req.Msg.Secret, req.Msg.Note, req.Msg.Scope)
+	if errors.Is(err, api.ErrInvalidArg{}) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	} else if err != nil {
 		h.l.Error().Err(err).Msg("create entity")
 		return nil, connect.NewError(connect.CodeInternal, nil)
 	}
 
-	return connect.NewResponse(&v1.CreateEntityResponse{Id: e.ID}), nil
+	h.l.Info().
+		Str("id", id).
+		Strs("scope", req.Msg.Scope).
+		Str("note", req.Msg.Note).
+		Msg("entity created")
+
+	return connect.NewResponse(&v1.CreateEntityResponse{Id: id}), nil
+}
+
+func (h *Handler) UpdateEntity(
+	ctx context.Context,
+	req *connect.Request[v1.UpdateEntityRequest],
+) (*connect.Response[v1.UpdateEntityResponse], error) {
+	crd, err := h.getCredentialsFromCtx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if crd.Token != h.cfg.Secret {
+		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+	}
+
+	err = h.api.UpdateEntity(ctx, req.Msg.Id, req.Msg.Secret, req.Msg.Note, req.Msg.Scope)
+	if errors.Is(err, api.ErrInvalidArg{}) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	} else if errors.Is(err, api.ErrNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	} else if err != nil {
+		h.l.Error().Err(err).Msg("update entity")
+		return nil, connect.NewError(connect.CodeInternal, nil)
+	}
+
+	h.l.Info().
+		Str("id", req.Msg.Id).
+		Strs("scope", req.Msg.Scope).
+		Str("note", req.Msg.Note).
+		Msg("entity updated")
+
+	return connect.NewResponse(&v1.UpdateEntityResponse{Id: req.Msg.Id}), nil
 }

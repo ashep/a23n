@@ -5,8 +5,7 @@ import (
 )
 
 var (
-	ErrNotFound     = errors.New("not found")
-	ErrUnauthorized = errors.New("access denied")
+	ErrNotFound = errors.New("not found")
 )
 
 type ErrInvalidArg struct {

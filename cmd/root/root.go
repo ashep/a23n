@@ -80,16 +80,17 @@ func New() *cobra.Command {
 				return
 			}
 
-			apiSec := os.Getenv("A23N_API_SECRET")
-			if apiSec != "" {
-				cfg.API.Secret = apiSec
+			srvSec := os.Getenv("A23N_SERVER_SECRET")
+			if srvSec != "" {
+				cfg.Server.Secret = srvSec
 			}
+
 			apiTokenTTL := os.Getenv("A23N_API_TOKEN_TTL")
 			if apiTokenTTL != "" {
 				t, _ := strconv.Atoi(apiTokenTTL)
 				cfg.API.TokenTTL = t
 			}
-			a, err := api.New(db, cfg.API.Secret, cfg.API.TokenTTL)
+			a, err := api.New(db, cfg.Server.Secret, cfg.API.TokenTTL)
 			if err != nil {
 				l.Fatal().Err(err).Msg("")
 				return
