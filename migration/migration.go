@@ -11,6 +11,8 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/lib/pq"
+
+	"github.com/ashep/a23n/sqldb"
 )
 
 //go:embed migrations/*.sql
@@ -35,8 +37,8 @@ func setup(db *sql.DB) (*migrate.Migrate, error) {
 	return m, nil
 }
 
-func Up(db *sql.DB) error {
-	m, err := setup(db)
+func Up(db sqldb.DB) error {
+	m, err := setup(db.DB())
 	if err != nil {
 		return err
 	}
@@ -49,8 +51,8 @@ func Up(db *sql.DB) error {
 	return nil
 }
 
-func Down(db *sql.DB) error {
-	m, err := setup(db)
+func Down(db sqldb.DB) error {
+	m, err := setup(db.DB())
 	if err != nil {
 		return err
 	}

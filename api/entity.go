@@ -14,37 +14,51 @@ import (
 type Entity struct {
 	ID     string
 	Secret string
-	Scope  []string
-	Note   string
+	Scope  Scope
+	Attrs  Attrs
 }
 
-func (a *API) CreateEntity(ctx context.Context, secret, note string, scope []string) (string, error) {
+func (a *DefaultAPI) CreateEntity(
+	ctx context.Context,
+	uuidGen UUIDGenerator,
+	passwdHashGen PasswordHashGenerator,
+	secret string,
+	scope Scope,
+	attrs Attrs,
+) (Entity, error) {
 	if len(scope) == 0 {
-		return "", ErrInvalidArg{Msg: "empty scope"}
+		return Entity{}, ErrInvalidArg{Msg: "empty scope"}
 	}
 
-	secretHash, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
+	secretHash, err := passwdHashGen([]byte(secret), bcrypt.DefaultCost)
 	if err != nil {
-		return "", fmt.Errorf("failed to hash a secret: %w", err)
+		return Entity{}, fmt.Errorf("failed to hash a secret: %w", err)
 	}
 
-	id := uuid.NewString()
+	id := uuidGen()
 
 	scopeArg := pq.StringArray{}
 	for _, s := range scope {
 		scopeArg = append(scopeArg, s)
 	}
 
-	q := `INSERT INTO entity (id, secret, scope, note) VALUES ($1, $2, $3, $4)`
-	_, err = a.db.ExecContext(ctx, q, id, secretHash, scopeArg, note)
+	q := `INSERT INTO entity (id, secret, scope, attrs) VALUES ($1, $2, $3, $4)`
+	_, err = a.db.ExecContext(ctx, q, id, secretHash, scopeArg, attrs)
 	if err != nil {
-		return "", err
+		return Entity{}, err
 	}
 
-	return id, nil
+	e := Entity{
+		ID:     id,
+		Secret: string(secretHash),
+		Scope:  scope,
+		Attrs:  attrs,
+	}
+
+	return e, nil
 }
 
-func (a *API) UpdateEntity(ctx context.Context, id, secret, note string, scope []string) error {
+func (a *DefaultAPI) UpdateEntity(ctx context.Context, id, secret string, scope []string, attrs map[string]string) error {
 	var err error
 
 	if _, err = uuid.Parse(id); err != nil {
@@ -66,10 +80,10 @@ func (a *API) UpdateEntity(ctx context.Context, id, secret, note string, scope [
 		if secretHash, err = bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost); err != nil {
 			return fmt.Errorf("failed to hash a secret: %w", err)
 		}
-		qr, err = a.db.ExecContext(ctx, `UPDATE entity SET secret=$1, scope=$2, note=$3 WHERE id=$4`,
-			secretHash, scopeArg, note, id)
+		qr, err = a.db.ExecContext(ctx, `UPDATE entity SET secret=$1, scope=$2, attrs=$3 WHERE id=$4`,
+			secretHash, scopeArg, attrs, id)
 	} else {
-		qr, err = a.db.ExecContext(ctx, `UPDATE entity SET scope=$1, note=$2 WHERE id=$3`, scopeArg, note, id)
+		qr, err = a.db.ExecContext(ctx, `UPDATE entity SET scope=$1, attrs=$2 WHERE id=$3`, scopeArg, attrs, id)
 	}
 
 	if err != nil {
@@ -85,15 +99,15 @@ func (a *API) UpdateEntity(ctx context.Context, id, secret, note string, scope [
 	return err
 }
 
-func (a *API) GetEntity(ctx context.Context, id string) (Entity, error) {
+func (a *DefaultAPI) GetEntity(ctx context.Context, id string) (Entity, error) {
 	var (
 		secret string
 		scope  pq.StringArray
-		note   string
+		attrs  map[string]string
 	)
 
-	row := a.db.QueryRowContext(ctx, `SELECT secret, scope, note FROM entity WHERE id=$1`, id)
-	if err := row.Scan(&secret, &scope, &note); errors.Is(err, sql.ErrNoRows) {
+	row := a.db.QueryRowContext(ctx, `SELECT secret, scope, attrs FROM entity WHERE id=$1`, id)
+	if err := row.Scan(&secret, &scope, &attrs); errors.Is(err, sql.ErrNoRows) {
 		return Entity{}, ErrNotFound
 	} else if err != nil {
 		return Entity{}, err
@@ -104,5 +118,5 @@ func (a *API) GetEntity(ctx context.Context, id string) (Entity, error) {
 		scopeArg = append(scopeArg, s)
 	}
 
-	return Entity{ID: id, Secret: secret, Scope: scopeArg, Note: note}, nil
+	return Entity{ID: id, Secret: secret, Scope: scopeArg, Attrs: attrs}, nil
 }

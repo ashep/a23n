@@ -2,9 +2,8 @@ package handler
 
 import (
 	"context"
+	"time"
 
-	"github.com/ashep/a23n/config"
-	"github.com/bufbuild/connect-go"
 	"github.com/rs/zerolog"
 
 	"github.com/ashep/a23n/api"
@@ -12,24 +11,22 @@ import (
 )
 
 type Handler struct {
-	cfg config.Server
-	api *api.API
-	l   zerolog.Logger
+	api             api.API
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
+	l               zerolog.Logger
 }
 
-func New(cfg config.Server, api *api.API, l zerolog.Logger) *Handler {
+func New(api api.API, accessTokenTTL, refreshTokenTTL time.Duration, l zerolog.Logger) *Handler {
 	return &Handler{
-		cfg: cfg,
-		api: api,
-		l:   l,
+		api:             api,
+		accessTokenTTL:  accessTokenTTL,
+		refreshTokenTTL: refreshTokenTTL,
+		l:               l,
 	}
 }
 
-func (h *Handler) getCredentialsFromCtx(ctx context.Context) (credentials.Credentials, error) {
+func (h *Handler) credentialsFromCtx(ctx context.Context) (credentials.Credentials, bool) {
 	crd, ok := ctx.Value("crd").(credentials.Credentials)
-	if !ok {
-		return crd, connect.NewError(connect.CodeUnauthenticated, nil)
-	}
-
-	return crd, nil
+	return crd, ok
 }

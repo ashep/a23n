@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"net/http"
+	"time"
 
-	"github.com/ashep/a23n/config"
 	"github.com/bufbuild/connect-go"
 	"github.com/rs/zerolog"
 
@@ -15,20 +15,20 @@ import (
 )
 
 type Server struct {
-	cfg config.Server
-	svc *api.API
-	l   zerolog.Logger
+	api             api.API
+	addr            string
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
+	l               zerolog.Logger
 }
 
-func New(cfg config.Server, svc *api.API, l zerolog.Logger) *Server {
-	if cfg.Address == "" {
-		cfg.Address = "localhost:9000"
-	}
-
+func New(api api.API, addr string, accessTokenTTL, refreshTokenTTL time.Duration, l zerolog.Logger) *Server {
 	return &Server{
-		cfg: cfg,
-		svc: svc,
-		l:   l,
+		api:             api,
+		addr:            addr,
+		accessTokenTTL:  accessTokenTTL,
+		refreshTokenTTL: refreshTokenTTL,
+		l:               l,
 	}
 }
 
@@ -52,12 +52,12 @@ func (s *Server) Run(ctx context.Context) error {
 		interceptor.Log(s.l),
 	)
 
-	p, h := v1connect.NewAuthServiceHandler(handler.New(s.cfg, s.svc, s.l), interceptors)
+	p, h := v1connect.NewAuthServiceHandler(handler.New(s.api, s.accessTokenTTL, s.refreshTokenTTL, s.l), interceptors)
 
 	mux := http.NewServeMux()
 	mux.Handle(p, corsHandler(h))
 
-	srv := &http.Server{Addr: s.cfg.Address, Handler: mux}
+	srv := &http.Server{Addr: s.addr, Handler: mux}
 
 	go func() {
 		<-ctx.Done()
@@ -66,6 +66,6 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}()
 
-	s.l.Debug().Str("addr", s.cfg.Address).Msg("starting server")
+	s.l.Debug().Str("addr", s.addr).Msg("starting server")
 	return srv.ListenAndServe()
 }

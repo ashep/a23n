@@ -24,12 +24,12 @@ tasks:
       - buf lint proto
       - buf generate
 
-  migrate:
+  migrate.up:
     desc: Apply db migrations
     cmds:
       - go run -ldflags "{{.BUILD_FLAGS}}" main.go --migrate-up {{.CLI_ARGS}}
 
-  demigrate:
+  migrate.down:
     desc: Revert db migrations
     cmds:
       - go run -ldflags "{{.BUILD_FLAGS}}" main.go --migrate-down {{.CLI_ARGS}}

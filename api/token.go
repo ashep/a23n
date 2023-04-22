@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -9,39 +8,32 @@ import (
 
 type TokenClaims struct {
 	jwt.RegisteredClaims
+	Scope []string `json:"scope,omitempty"`
 }
 
-func (a *API) CreateToken(e Entity) *jwt.Token {
+func (a *DefaultAPI) CreateToken(subject string, scope []string, ttl time.Duration) *jwt.Token {
 	n := jwt.NewNumericDate(time.Now())
-	exp := jwt.NewNumericDate(n.Add(time.Duration(a.tokenTTL) * time.Second))
 
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, TokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   e.ID,
+			Subject:   subject,
 			IssuedAt:  n,
 			NotBefore: n,
-			ExpiresAt: exp,
+			ExpiresAt: jwt.NewNumericDate(n.Add(ttl)),
 		},
+		Scope: scope,
 	})
 }
 
-func (a *API) GetTokenSignedString(t *jwt.Token) (string, error) {
+func (a *DefaultAPI) GetTokenSignedString(t *jwt.Token) (string, error) {
 	return t.SignedString([]byte(a.secret))
 }
 
-func (a *API) GetEntityByTokenString(ctx context.Context, token string) (Entity, error) {
+func (a *DefaultAPI) ParseToken(token string) (TokenClaims, error) {
 	clm := TokenClaims{}
 	_, err := jwt.ParseWithClaims(token, &clm, func(token *jwt.Token) (interface{}, error) {
 		return []byte(a.secret), nil
 	})
-	if err != nil {
-		return Entity{}, err
-	}
 
-	e, err := a.GetEntity(ctx, clm.Subject)
-	if err != nil {
-		return Entity{}, err
-	}
-
-	return e, nil
+	return clm, err
 }

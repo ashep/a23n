@@ -7,23 +7,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type API struct {
-	TokenTTL int `yaml:"token_ttl"`
-}
-
 type Database struct {
 	DSN string `yaml:"dsn"`
 }
 
-type Server struct {
-	Address string `yaml:"address"`
-	Secret  string `yaml:"secret"`
-}
-
 type Config struct {
-	API    API      `yaml:"api"`
-	DB     Database `yaml:"db"`
-	Server Server   `yaml:"server"`
+	DB              Database `yaml:"db"`
+	Address         string   `yaml:"address"`
+	Secret          string   `yaml:"secret"`
+	AccessTokenTTL  uint     `yaml:"access_token_ttl"`
+	RefreshTokenTTL uint     `yaml:"refresh_token_ttl"`
 }
 
 func Parse(in []byte) (Config, error) {

@@ -1,28 +1,40 @@
 package api
 
 import (
-	"database/sql"
-	"errors"
+	"context"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/ashep/a23n/sqldb"
 )
 
-type API struct {
-	db       *sql.DB
-	secret   string
-	tokenTTL int
+type API interface {
+	CheckSecret(hashed, secret string) (bool, error)
+
+	CreateEntity(ctx context.Context, uuidGen UUIDGenerator, passwdHashGen PasswordHashGenerator, secret string, scope Scope, attrs Attrs) (Entity, error)
+	GetEntity(ctx context.Context, id string) (Entity, error)
+	UpdateEntity(ctx context.Context, id, secret string, scope []string, attrs map[string]string) error
+	CheckScope(target Scope, required Scope) bool
+
+	CreateToken(subject string, scope []string, ttl time.Duration) *jwt.Token
+	GetTokenSignedString(t *jwt.Token) (string, error)
+	ParseToken(token string) (TokenClaims, error)
 }
 
-func New(db *sql.DB, secret string, tokenTTL int) (*API, error) {
-	if len(secret) < 32 {
-		return nil, errors.New("secret key is too short")
-	}
+type UUIDGenerator func() string
 
-	if tokenTTL == 0 {
-		tokenTTL = 86400
-	}
+type PasswordHashGenerator func(password []byte, cost int) ([]byte, error)
 
-	return &API{
-		db:       db,
-		secret:   secret,
-		tokenTTL: tokenTTL,
-	}, nil
+type DefaultAPI struct {
+	db     sqldb.DB
+	phg    PasswordHashGenerator
+	secret string
+}
+
+func NewDefault(db sqldb.DB, secret string) *DefaultAPI {
+	return &DefaultAPI{
+		db:     db,
+		secret: secret,
+	}
 }
