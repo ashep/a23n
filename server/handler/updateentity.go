@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/bufbuild/connect-go"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/ashep/a23n/api"
 	"github.com/ashep/a23n/sdk/proto/a23n/v1"
@@ -24,7 +25,13 @@ func (h *Handler) UpdateEntity(
 	//	return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 	//}
 
-	err := h.api.UpdateEntity(ctx, req.Msg.Id, req.Msg.Secret, req.Msg.Scope, nil)
+	secretHash, err := bcrypt.GenerateFromPassword([]byte(req.Msg.Secret), bcrypt.DefaultCost)
+	if err != nil {
+		h.l.Error().Err(err).Msg("generate password hash")
+		return nil, connect.NewError(connect.CodeInternal, nil)
+	}
+
+	err = h.api.UpdateEntity(ctx, req.Msg.Id, secretHash, req.Msg.Scope, req.Msg.Attrs)
 	if errors.Is(err, api.ErrInvalidArg{}) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	} else if errors.Is(err, api.ErrNotFound) {
@@ -37,7 +44,6 @@ func (h *Handler) UpdateEntity(
 	h.l.Info().
 		Str("id", req.Msg.Id).
 		Strs("scope", req.Msg.Scope).
-		Str("note", req.Msg.Note).
 		Msg("entity updated")
 
 	return connect.NewResponse(&v1.UpdateEntityResponse{Id: req.Msg.Id}), nil

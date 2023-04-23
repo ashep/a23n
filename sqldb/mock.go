@@ -39,6 +39,10 @@ type DBMock struct {
 	mock.Mock
 }
 
+func (m *DBMock) DB() *sql.DB {
+	return m.Called().Get(0).(*sql.DB)
+}
+
 func (m *DBMock) PingContext(ctx context.Context) error {
 	return m.Called(ctx).Error(0)
 }

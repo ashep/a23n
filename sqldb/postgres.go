@@ -30,6 +30,6 @@ func (p *Postgres) ExecContext(ctx context.Context, query string, args ...interf
 	return p.db.ExecContext(ctx, query, args...)
 }
 
-func (p *Postgres) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (p *Postgres) QueryRowContext(ctx context.Context, query string, args ...interface{}) Row {
 	return p.db.QueryRowContext(ctx, query, args)
 }

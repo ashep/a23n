@@ -17,19 +17,19 @@ func (m *APIMock) CheckSecret(hashed, secret string) (bool, error) {
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *APIMock) CreateEntity(ctx context.Context, uuidGen UUIDGenerator, passwdHashGen PasswordHashGenerator, secret string, scope Scope, attrs Attrs) (Entity, error) {
-	args := m.Called(ctx, uuidGen, passwdHashGen, secret, scope, attrs)
-	return args.Get(0).(Entity), args.Error(1)
+func (m *APIMock) CreateEntity(ctx context.Context, id string, secret []byte, scope Scope, attrs Attrs) error {
+	args := m.Called(ctx, id, secret, scope, attrs)
+	return args.Error(0)
+}
+
+func (m *APIMock) UpdateEntity(ctx context.Context, id string, secret []byte, scope Scope, attrs Attrs) error {
+	args := m.Called(ctx, id, secret, scope, attrs)
+	return args.Error(0)
 }
 
 func (m *APIMock) GetEntity(ctx context.Context, id string) (Entity, error) {
 	args := m.Called(ctx, id)
 	return args.Get(0).(Entity), args.Error(1)
-}
-
-func (m *APIMock) UpdateEntity(ctx context.Context, id, secret string, scope []string, attrs map[string]string) error {
-	args := m.Called(ctx, id, secret, scope, attrs)
-	return args.Error(0)
 }
 
 func (m *APIMock) CheckScope(target Scope, required Scope) bool {

@@ -14,5 +14,5 @@ type DB interface {
 	DB() *sql.DB
 	PingContext(ctx context.Context) error
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) Row
 }

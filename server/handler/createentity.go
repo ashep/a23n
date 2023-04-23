@@ -26,7 +26,15 @@ func (h *Handler) CreateEntity(
 	//	return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 	//}
 
-	e, err := h.api.CreateEntity(ctx, uuid.NewString, bcrypt.GenerateFromPassword, req.Msg.Secret, req.Msg.Scope, nil)
+	id := uuid.NewString()
+
+	secretHash, err := bcrypt.GenerateFromPassword([]byte(req.Msg.Secret), bcrypt.DefaultCost)
+	if err != nil {
+		h.l.Error().Err(err).Msg("generate password hash")
+		return nil, connect.NewError(connect.CodeInternal, nil)
+	}
+
+	err = h.api.CreateEntity(ctx, id, secretHash, req.Msg.Scope, req.Msg.Attrs)
 	if errors.Is(err, api.ErrInvalidArg{}) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	} else if err != nil {
@@ -35,10 +43,10 @@ func (h *Handler) CreateEntity(
 	}
 
 	h.l.Info().
-		Str("id", e.ID).
+		Str("id", id).
 		Strs("scope", req.Msg.Scope).
-		Str("note", req.Msg.Note).
+		Interface("attrs", req.Msg.Attrs).
 		Msg("entity created")
 
-	return connect.NewResponse(&v1.CreateEntityResponse{Id: e.ID}), nil
+	return connect.NewResponse(&v1.CreateEntityResponse{Id: id}), nil
 }

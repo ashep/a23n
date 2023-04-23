@@ -23,7 +23,7 @@ message RefreshTokenResponse {
 message CreateEntityRequest {
   string secret = 1;
   repeated string scope = 2;
-  string note = 3;
+  map<string, string> attrs = 3;
 }
 
 message CreateEntityResponse {
@@ -34,7 +34,7 @@ message UpdateEntityRequest {
   string id = 1;
   string secret = 2;
   repeated string scope = 3;
-  string note = 4;
+  map<string, string> attrs = 4;
 }
 
 message UpdateEntityResponse {

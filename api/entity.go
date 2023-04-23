@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -18,55 +19,16 @@ type Entity struct {
 	Attrs  Attrs
 }
 
-func (a *DefaultAPI) CreateEntity(
-	ctx context.Context,
-	uuidGen UUIDGenerator,
-	passwdHashGen PasswordHashGenerator,
-	secret string,
-	scope Scope,
-	attrs Attrs,
-) (Entity, error) {
-	if len(scope) == 0 {
-		return Entity{}, ErrInvalidArg{Msg: "empty scope"}
-	}
-
-	secretHash, err := passwdHashGen([]byte(secret), bcrypt.DefaultCost)
-	if err != nil {
-		return Entity{}, fmt.Errorf("failed to hash a secret: %w", err)
-	}
-
-	id := uuidGen()
-
-	scopeArg := pq.StringArray{}
-	for _, s := range scope {
-		scopeArg = append(scopeArg, s)
-	}
-
-	q := `INSERT INTO entity (id, secret, scope, attrs) VALUES ($1, $2, $3, $4)`
-	_, err = a.db.ExecContext(ctx, q, id, secretHash, scopeArg, attrs)
-	if err != nil {
-		return Entity{}, err
-	}
-
-	e := Entity{
-		ID:     id,
-		Secret: string(secretHash),
-		Scope:  scope,
-		Attrs:  attrs,
-	}
-
-	return e, nil
-}
-
-func (a *DefaultAPI) UpdateEntity(ctx context.Context, id, secret string, scope []string, attrs map[string]string) error {
+// CreateEntity creates a new entity. The secret should contain a hashed string, not clear text.
+func (a *DefaultAPI) CreateEntity(ctx context.Context, id string, secret []byte, scope Scope, attrs Attrs) error {
 	var err error
 
 	if _, err = uuid.Parse(id); err != nil {
 		return ErrInvalidArg{Msg: fmt.Sprintf("invalid id: %s", err.Error())}
 	}
 
-	if len(scope) == 0 {
-		return ErrInvalidArg{Msg: "empty scope"}
+	if _, err = bcrypt.Cost(secret); err != nil {
+		return ErrInvalidArg{Msg: fmt.Sprintf("invalid secret: %s", err.Error())}
 	}
 
 	scopeArg := pq.StringArray{}
@@ -74,18 +36,59 @@ func (a *DefaultAPI) UpdateEntity(ctx context.Context, id, secret string, scope 
 		scopeArg = append(scopeArg, s)
 	}
 
-	var qr sql.Result
-	if secret != "" {
-		var secretHash []byte
-		if secretHash, err = bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost); err != nil {
-			return fmt.Errorf("failed to hash a secret: %w", err)
+	attrsJSON := []byte("{}")
+	if len(attrs) != 0 {
+		// NOTE: this code is not covered by unit tests in favor of simplicity
+		if attrsJSON, err = json.Marshal(attrs); err != nil {
+			return ErrInvalidArg{Msg: fmt.Sprintf("invalid attrs: %s", err.Error())}
 		}
-		qr, err = a.db.ExecContext(ctx, `UPDATE entity SET secret=$1, scope=$2, attrs=$3 WHERE id=$4`,
-			secretHash, scopeArg, attrs, id)
-	} else {
-		qr, err = a.db.ExecContext(ctx, `UPDATE entity SET scope=$1, attrs=$2 WHERE id=$3`, scopeArg, attrs, id)
 	}
 
+	q := `INSERT INTO entity (id, secret, scope, attrs) VALUES ($1, $2, $3, $4)`
+	_, err = a.db.ExecContext(ctx, q, id, secret, scopeArg, attrsJSON)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateEntity updates an existing entity. The secret should contain a hashed string, not clear text. Empty secret
+// tells this method that it should not be updated.
+func (a *DefaultAPI) UpdateEntity(ctx context.Context, id string, secret []byte, scope Scope, attrs Attrs) error {
+	var err error
+
+	if _, err := uuid.Parse(id); err != nil {
+		return ErrInvalidArg{Msg: fmt.Sprintf("invalid id: %s", err.Error())}
+	}
+
+	scopeArg := pq.StringArray{}
+	for _, s := range scope {
+		scopeArg = append(scopeArg, s)
+	}
+
+	attrsJSON := []byte("{}")
+	if len(attrs) != 0 {
+		// NOTE: this code is not covered by unit tests in favor of simplicity
+		attrsJSON, err = json.Marshal(attrs)
+		if err != nil {
+			return ErrInvalidArg{Msg: fmt.Sprintf("invalid attrs: %s", err.Error())}
+		}
+	}
+
+	q := `UPDATE entity SET scope=$1, attrs=$2 WHERE id=$3`
+	qArgs := []interface{}{scopeArg, attrsJSON, id}
+
+	if len(secret) != 0 {
+		if _, err = bcrypt.Cost(secret); err != nil {
+			return ErrInvalidArg{Msg: fmt.Sprintf("invalid secret: %s", err.Error())}
+		}
+
+		q = `UPDATE entity SET secret=$1, scope=$2, attrs=$3 WHERE id=$4`
+		qArgs = []interface{}{secret, scopeArg, attrsJSON, id}
+	}
+
+	qr, err := a.db.ExecContext(ctx, q, qArgs...)
 	if err != nil {
 		return err
 	}
@@ -96,7 +99,7 @@ func (a *DefaultAPI) UpdateEntity(ctx context.Context, id, secret string, scope 
 		return ErrNotFound
 	}
 
-	return err
+	return nil
 }
 
 func (a *DefaultAPI) GetEntity(ctx context.Context, id string) (Entity, error) {
