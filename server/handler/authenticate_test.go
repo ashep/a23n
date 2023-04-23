@@ -145,7 +145,7 @@ func (s *AuthenticateTestSuite) TestEntityHasNoScope() {
 		Return(true, nil)
 
 	s.api.
-		On("CheckScope", api.Entity{ID: "anEntityID"}, []string{"aScopeItem"}).
+		On("CheckScope", api.Scope(nil), api.Scope{"aScopeItem"}).
 		Return(false)
 
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
