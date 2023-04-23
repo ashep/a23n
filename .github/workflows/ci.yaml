@@ -6,30 +6,38 @@ jobs:
     runs-on: ubuntu-latest
     container: golang:1.19
     steps:
-      - name: checkout
+      - id: checkout
+        name: Checkout
         uses: actions/checkout@v3
-      - name: setup
-        run:
-          - go mod vendor
-          - go install github.com/rakyll/gotest
-      - name: run
-        run:
-          - gotest -v ./...
+      - id: setup
+        name: Install dependencies
+        run: |
+          go mod vendor
+          go install github.com/rakyll/gotest
+      - id: run
+        name: Run tests
+        run: gotest -v ./...
 
   publish-image:
     runs-on: ubuntu-latest
     steps:
-      - name: login
+      - id: login
+        name: Docker login
         run: docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }}
-      - name: checkout
+      - id: checkout
+        name: Checkout
         uses: actions/checkout@v3
-      - name: build
+      - id: build
+        name: Build
         run: docker build -t ${{ secrets.REGISTRY_USERNAME }}/$APP_NAME:$GITHUB_REF_NAME .
-      - name: tag-latest
+      - id: tag-latest
+        name: Add latest tag to the image
         if: github.ref_name == 'master'
         run: docker tag ${{ secrets.REGISTRY_USERNAME }}/$APP_NAME:$GITHUB_REF_NAME ${{ secrets.REGISTRY_USERNAME }}/$APP_NAME:latest
-      - name: push
+      - id: push
+        name: Push image to the registry
         run: docker push ${{ secrets.REGISTRY_USERNAME }}/$APP_NAME:$GITHUB_REF_NAME
-      - name: push-latest
+      - id: push-latest
+        name: Push latest tag to the registry
         if: github.ref_name == 'master'
         run: docker push ${{ secrets.REGISTRY_USERNAME }}/$APP_NAME:latest
