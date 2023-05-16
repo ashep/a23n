@@ -45,27 +45,27 @@ func (h *Handler) Authenticate(
 	}
 
 	accessToken := h.api.CreateToken(e.ID, e.Scope, h.accessTokenTTL)
-	accessTokenExp, err := accessToken.Claims.GetExpirationTime()
+	accessTokenExp, err := accessToken.Claims().GetExpirationTime()
 	if err != nil {
 		h.l.Error().Err(err).Str("entity_id", crd.ID).Msg("get access token expiration time failed")
-		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		return nil, connect.NewError(connect.CodeInternal, nil)
 	}
 	accessTokenStr, err := h.api.GetTokenSignedString(accessToken)
 	if err != nil {
 		h.l.Error().Err(err).Str("entity_id", crd.ID).Msg("get access token signed string failed")
-		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		return nil, connect.NewError(connect.CodeInternal, nil)
 	}
 
 	refreshToken := h.api.CreateToken(e.ID+"_refresh", e.Scope, h.refreshTokenTTL)
-	refreshTokenExp, err := refreshToken.Claims.GetExpirationTime()
+	refreshTokenExp, err := refreshToken.Claims().GetExpirationTime()
 	if err != nil {
 		h.l.Error().Err(err).Str("entity_id", crd.ID).Msg("get refresh token expiration time failed")
-		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		return nil, connect.NewError(connect.CodeInternal, nil)
 	}
 	refreshTokenStr, err := h.api.GetTokenSignedString(refreshToken)
 	if err != nil {
 		h.l.Error().Err(err).Str("entity_id", crd.ID).Msg("get refresh token signed string failed")
-		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		return nil, connect.NewError(connect.CodeInternal, nil)
 	}
 
 	h.l.Info().

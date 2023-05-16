@@ -135,7 +135,7 @@ func (s *AuthenticateTestSuite) TestInvalidSecret() {
 	s.Require().Nil(s.logger.LastEntry())
 }
 
-func (s *AuthenticateTestSuite) TestEntityHasNoScope() {
+func (s *AuthenticateTestSuite) TestOutOfScope() {
 	s.api.
 		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
 		Return(api.Entity{ID: "anEntityID"}, nil)
@@ -159,6 +159,48 @@ func (s *AuthenticateTestSuite) TestEntityHasNoScope() {
 	s.Require().Equal(err, connect.NewError(connect.CodePermissionDenied, nil))
 
 	s.Require().Nil(s.logger.LastEntry())
+}
+
+func (s *AuthenticateTestSuite) TestGetAccessTokenExpirationTimeError() {
+	tk := &api.TokenMock{}
+
+	tk.
+		On("Claims").
+		Return(api.TokenClaims{})
+
+	s.api.
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
+		Return(api.Entity{ID: "anEntityID"}, nil)
+
+	s.api.
+		On("CheckSecret", "anEntityID", "aPassword").
+		Return(true, nil)
+
+	s.api.
+		On("CheckScope", api.Scope(nil), api.Scope{"aScopeItem"}).
+		Return(true)
+
+	s.api.
+		On("CreateToken", "anEntityID", []string(nil), time.Second*5).
+		Return(tk)
+
+	s.api.
+		On("GetTokenSignedString", tk).
+		Return("", errors.New("theGetTokenSignedStringError"))
+
+	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
+		ID:       "anEntityID",
+		Password: "aPassword",
+	})
+
+	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{
+		Scope: []string{"aScopeItem"},
+	}))
+	s.Require().Equal(err, connect.NewError(connect.CodeInternal, nil))
+
+	l := s.logger.LastEntry()
+	s.Require().NotNil(l)
+	s.Assert().Equal(`{"level":"error","error":"theGetTokenSignedStringError","entity_id":"anEntityID","message":"get access token signed string failed"}`, l.String())
 }
 
 func TestHandler_Authenticate(t *testing.T) {

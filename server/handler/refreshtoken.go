@@ -35,7 +35,7 @@ func (h *Handler) RefreshToken(
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 	}
 
-	exp, err := t.Claims.GetExpirationTime()
+	exp, err := t.Claims().GetExpirationTime()
 	if err != nil {
 		h.l.Error().Err(err).Str("entity_id", e.ID).Msg("token GetExpirationTime failed")
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)

@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-
 	"github.com/ashep/a23n/sqldb"
 )
 
@@ -17,8 +15,8 @@ type API interface {
 	GetEntity(ctx context.Context, id string) (Entity, error)
 	CheckScope(target Scope, required Scope) bool
 
-	CreateToken(subject string, scope []string, ttl time.Duration) *jwt.Token
-	GetTokenSignedString(t *jwt.Token) (string, error)
+	CreateToken(subject string, scope []string, ttl time.Duration) Token
+	GetTokenSignedString(t Token) (string, error)
 	ParseToken(token string) (TokenClaims, error)
 }
 
