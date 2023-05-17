@@ -28,7 +28,7 @@ func (a *DefaultAPI) CreateEntity(ctx context.Context, id string, secret []byte,
 	}
 
 	if _, err = bcrypt.Cost(secret); err != nil {
-		return ErrInvalidArg{Msg: fmt.Sprintf("invalid secret: %s", err.Error())}
+		return ErrInvalidArg{Msg: fmt.Sprintf("invalid secretKey: %s", err.Error())}
 	}
 
 	scopeArg := pq.StringArray{}
@@ -44,7 +44,7 @@ func (a *DefaultAPI) CreateEntity(ctx context.Context, id string, secret []byte,
 		}
 	}
 
-	q := `INSERT INTO entity (id, secret, scope, attrs) VALUES ($1, $2, $3, $4)`
+	q := `INSERT INTO entity (id, secretKey, scope, attrs) VALUES ($1, $2, $3, $4)`
 	_, err = a.db.ExecContext(ctx, q, id, secret, scopeArg, attrsJSON)
 	if err != nil {
 		return err
@@ -81,10 +81,10 @@ func (a *DefaultAPI) UpdateEntity(ctx context.Context, id string, secret []byte,
 
 	if len(secret) != 0 {
 		if _, err = bcrypt.Cost(secret); err != nil {
-			return ErrInvalidArg{Msg: fmt.Sprintf("invalid secret: %s", err.Error())}
+			return ErrInvalidArg{Msg: fmt.Sprintf("invalid secretKey: %s", err.Error())}
 		}
 
-		q = `UPDATE entity SET secret=$1, scope=$2, attrs=$3 WHERE id=$4`
+		q = `UPDATE entity SET secretKey=$1, scope=$2, attrs=$3 WHERE id=$4`
 		qArgs = []interface{}{secret, scopeArg, attrsJSON, id}
 	}
 
@@ -109,7 +109,7 @@ func (a *DefaultAPI) GetEntity(ctx context.Context, id string) (Entity, error) {
 		attrs  map[string]string
 	)
 
-	row := a.db.QueryRowContext(ctx, `SELECT secret, scope, attrs FROM entity WHERE id=$1`, id)
+	row := a.db.QueryRowContext(ctx, `SELECT secretKey, scope, attrs FROM entity WHERE id=$1`, id)
 	if err := row.Scan(&secret, &scope, &attrs); errors.Is(err, sql.ErrNoRows) {
 		return Entity{}, ErrNotFound
 	} else if err != nil {

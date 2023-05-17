@@ -6,8 +6,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type Claims interface {
+	GetExpirationTime() (*jwt.NumericDate, error)
+}
+
 type Token interface {
-	Claims() jwt.Claims
+	Claims() Claims
 	SignedString(key interface{}) (string, error)
 }
 
@@ -20,7 +24,7 @@ type DefaultToken struct {
 	t *jwt.Token
 }
 
-func (t *DefaultToken) Claims() jwt.Claims {
+func (t *DefaultToken) Claims() Claims {
 	return t.t.Claims
 }
 
@@ -44,14 +48,10 @@ func (a *DefaultAPI) CreateToken(subject string, scope []string, ttl time.Durati
 	}
 }
 
-func (a *DefaultAPI) GetTokenSignedString(t Token) (string, error) {
-	return t.SignedString([]byte(a.secret))
-}
-
 func (a *DefaultAPI) ParseToken(token string) (TokenClaims, error) {
 	clm := TokenClaims{}
 	_, err := jwt.ParseWithClaims(token, &clm, func(token *jwt.Token) (interface{}, error) {
-		return []byte(a.secret), nil
+		return []byte(a.secretKey), nil
 	})
 
 	return clm, err

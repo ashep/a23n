@@ -29,7 +29,7 @@ func (h *Handler) RefreshToken(
 
 	// TODO: pass scope
 	t := h.api.CreateToken(e.ID, []string{}, 123)
-	ts, err := h.api.GetTokenSignedString(t)
+	ts, err := t.SignedString(h.api.SecretKey())
 	if err != nil {
 		h.l.Error().Err(err).Str("entity_id", e.ID).Msg("api.GetTokenSignedString failed")
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)

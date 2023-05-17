@@ -2,12 +2,16 @@ package api
 
 import (
 	"context"
+	"errors"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/ashep/a23n/sqldb"
 )
 
 type API interface {
+	SecretKey() string
 	CheckSecret(hashed, secret string) (bool, error)
 
 	CreateEntity(ctx context.Context, id string, secret []byte, scope Scope, attrs Attrs) error
@@ -16,18 +20,32 @@ type API interface {
 	CheckScope(target Scope, required Scope) bool
 
 	CreateToken(subject string, scope []string, ttl time.Duration) Token
-	GetTokenSignedString(t Token) (string, error)
 	ParseToken(token string) (TokenClaims, error)
 }
 
 type DefaultAPI struct {
-	db     sqldb.DB
-	secret string
+	db        sqldb.DB
+	secretKey string
 }
 
-func NewDefault(db sqldb.DB, secret string) *DefaultAPI {
+func NewDefault(db sqldb.DB, secretKey string) *DefaultAPI {
 	return &DefaultAPI{
-		db:     db,
-		secret: secret,
+		db:        db,
+		secretKey: secretKey,
 	}
+}
+
+func (a *DefaultAPI) SecretKey() string {
+	return a.secretKey
+}
+
+func (a *DefaultAPI) CheckSecret(hashed, secret string) (bool, error) {
+	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(secret))
+	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

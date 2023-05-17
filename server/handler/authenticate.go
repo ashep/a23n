@@ -50,7 +50,7 @@ func (h *Handler) Authenticate(
 		h.l.Error().Err(err).Str("entity_id", crd.ID).Msg("get access token expiration time failed")
 		return nil, connect.NewError(connect.CodeInternal, nil)
 	}
-	accessTokenStr, err := h.api.GetTokenSignedString(accessToken)
+	accessTokenStr, err := accessToken.SignedString(h.api.SecretKey())
 	if err != nil {
 		h.l.Error().Err(err).Str("entity_id", crd.ID).Msg("get access token signed string failed")
 		return nil, connect.NewError(connect.CodeInternal, nil)
@@ -62,7 +62,7 @@ func (h *Handler) Authenticate(
 		h.l.Error().Err(err).Str("entity_id", crd.ID).Msg("get refresh token expiration time failed")
 		return nil, connect.NewError(connect.CodeInternal, nil)
 	}
-	refreshTokenStr, err := h.api.GetTokenSignedString(refreshToken)
+	refreshTokenStr, err := refreshToken.SignedString(h.api.SecretKey())
 	if err != nil {
 		h.l.Error().Err(err).Str("entity_id", crd.ID).Msg("get refresh token signed string failed")
 		return nil, connect.NewError(connect.CodeInternal, nil)

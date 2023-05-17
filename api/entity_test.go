@@ -46,14 +46,14 @@ func (s *EntityTestSuite) TestCreateEntityInvalidID() {
 func (s *EntityTestSuite) TestCreateEntityEmptySecret() {
 	err := s.api.CreateEntity(context.Background(), "de2a6f34-5371-4409-89ec-62bfda13fcb7", nil, nil, nil)
 
-	s.Require().EqualError(err, "invalid secret: crypto/bcrypt: hashedSecret too short to be a bcrypted password")
+	s.Require().EqualError(err, "invalid secretKey: crypto/bcrypt: hashedSecret too short to be a bcrypted password")
 	s.Assert().ErrorIs(err, api.ErrInvalidArg{})
 }
 
 func (s *EntityTestSuite) TestCreateEntityInvalidSecret() {
 	err := s.api.CreateEntity(context.Background(), "de2a6f34-5371-4409-89ec-62bfda13fcb7", []byte("abc"), nil, nil)
 
-	s.Require().EqualError(err, "invalid secret: crypto/bcrypt: hashedSecret too short to be a bcrypted password")
+	s.Require().EqualError(err, "invalid secretKey: crypto/bcrypt: hashedSecret too short to be a bcrypted password")
 	s.Assert().ErrorIs(err, api.ErrInvalidArg{})
 }
 
@@ -80,7 +80,7 @@ func (s *EntityTestSuite) TestCreateEntityEmptyScope() {
 	s.db.On(
 		"ExecContext",
 		mock.AnythingOfType("*context.emptyCtx"),
-		"INSERT INTO entity (id, secret, scope, attrs) VALUES ($1, $2, $3, $4)",
+		"INSERT INTO entity (id, secretKey, scope, attrs) VALUES ($1, $2, $3, $4)",
 		[]interface{}{
 			"de2a6f34-5371-4409-89ec-62bfda13fcb7",
 			[]byte("$2a$12$5GiSCPaURd2vLHGm.HgtF.SJGGPjJyuXaiTFnKSCqVbRTJl75ZUvy"),
@@ -104,7 +104,7 @@ func (s *EntityTestSuite) TestCreateEntityEmptyAttrs() {
 	s.db.On(
 		"ExecContext",
 		mock.AnythingOfType("*context.emptyCtx"),
-		"INSERT INTO entity (id, secret, scope, attrs) VALUES ($1, $2, $3, $4)",
+		"INSERT INTO entity (id, secretKey, scope, attrs) VALUES ($1, $2, $3, $4)",
 		[]interface{}{
 			"de2a6f34-5371-4409-89ec-62bfda13fcb7",
 			[]byte("$2a$12$5GiSCPaURd2vLHGm.HgtF.SJGGPjJyuXaiTFnKSCqVbRTJl75ZUvy"),
@@ -128,7 +128,7 @@ func (s *EntityTestSuite) TestCreateEntityEmptyScopeAndAttrs() {
 	s.db.On(
 		"ExecContext",
 		mock.AnythingOfType("*context.emptyCtx"),
-		"INSERT INTO entity (id, secret, scope, attrs) VALUES ($1, $2, $3, $4)",
+		"INSERT INTO entity (id, secretKey, scope, attrs) VALUES ($1, $2, $3, $4)",
 		[]interface{}{
 			"de2a6f34-5371-4409-89ec-62bfda13fcb7",
 			[]byte("$2a$12$5GiSCPaURd2vLHGm.HgtF.SJGGPjJyuXaiTFnKSCqVbRTJl75ZUvy"),
@@ -152,7 +152,7 @@ func (s *EntityTestSuite) TestCreateEntityOk() {
 	s.db.On(
 		"ExecContext",
 		mock.AnythingOfType("*context.emptyCtx"),
-		"INSERT INTO entity (id, secret, scope, attrs) VALUES ($1, $2, $3, $4)",
+		"INSERT INTO entity (id, secretKey, scope, attrs) VALUES ($1, $2, $3, $4)",
 		[]interface{}{
 			"de2a6f34-5371-4409-89ec-62bfda13fcb7",
 			[]byte("$2a$12$5GiSCPaURd2vLHGm.HgtF.SJGGPjJyuXaiTFnKSCqVbRTJl75ZUvy"),
@@ -189,7 +189,7 @@ func (s *EntityTestSuite) TestUpdateEntityInvalidID() {
 func (s *EntityTestSuite) TestUpdateEntityInvalidSecret() {
 	err := s.api.UpdateEntity(context.Background(), "de2a6f34-5371-4409-89ec-62bfda13fcb7", []byte("abc"), nil, nil)
 
-	s.Require().EqualError(err, "invalid secret: crypto/bcrypt: hashedSecret too short to be a bcrypted password")
+	s.Require().EqualError(err, "invalid secretKey: crypto/bcrypt: hashedSecret too short to be a bcrypted password")
 	s.Assert().ErrorIs(err, api.ErrInvalidArg{})
 }
 
@@ -274,7 +274,7 @@ func (s *EntityTestSuite) TestUpdateEntityNonEmptySecret() {
 	s.db.On(
 		"ExecContext",
 		mock.AnythingOfType("*context.emptyCtx"),
-		"UPDATE entity SET secret=$1, scope=$2, attrs=$3 WHERE id=$4",
+		"UPDATE entity SET secretKey=$1, scope=$2, attrs=$3 WHERE id=$4",
 		[]interface{}{
 			[]byte("$2a$12$5GiSCPaURd2vLHGm.HgtF.SJGGPjJyuXaiTFnKSCqVbRTJl75ZUvy"),
 			pq.StringArray{},
@@ -302,7 +302,7 @@ func (s *EntityTestSuite) TestUpdateEntityNonEmptyScope() {
 	s.db.On(
 		"ExecContext",
 		mock.AnythingOfType("*context.emptyCtx"),
-		"UPDATE entity SET secret=$1, scope=$2, attrs=$3 WHERE id=$4",
+		"UPDATE entity SET secretKey=$1, scope=$2, attrs=$3 WHERE id=$4",
 		[]interface{}{
 			[]byte("$2a$12$5GiSCPaURd2vLHGm.HgtF.SJGGPjJyuXaiTFnKSCqVbRTJl75ZUvy"),
 			pq.StringArray{"theScope"},
@@ -330,7 +330,7 @@ func (s *EntityTestSuite) TestUpdateEntityNonEmptyAttrs() {
 	s.db.On(
 		"ExecContext",
 		mock.AnythingOfType("*context.emptyCtx"),
-		"UPDATE entity SET secret=$1, scope=$2, attrs=$3 WHERE id=$4",
+		"UPDATE entity SET secretKey=$1, scope=$2, attrs=$3 WHERE id=$4",
 		[]interface{}{
 			[]byte("$2a$12$5GiSCPaURd2vLHGm.HgtF.SJGGPjJyuXaiTFnKSCqVbRTJl75ZUvy"),
 			pq.StringArray{"theScope"},

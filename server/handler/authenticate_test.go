@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bufbuild/connect-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
 	"github.com/rzajac/zltest"
 	"github.com/stretchr/testify/mock"
@@ -162,11 +163,58 @@ func (s *AuthenticateTestSuite) TestOutOfScope() {
 }
 
 func (s *AuthenticateTestSuite) TestGetAccessTokenExpirationTimeError() {
-	tk := &api.TokenMock{}
+	cl := &api.ClaimsMock{}
+	cl.On("GetExpirationTime").
+		Return(&jwt.NumericDate{}, errors.New("theGetExpirationTimeError"))
 
+	tk := &api.TokenMock{}
 	tk.
 		On("Claims").
-		Return(api.TokenClaims{})
+		Return(cl)
+
+	s.api.
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
+		Return(api.Entity{ID: "anEntityID"}, nil)
+
+	s.api.
+		On("CheckSecret", "anEntityID", "aPassword").
+		Return(true, nil)
+
+	s.api.
+		On("CheckScope", api.Scope(nil), api.Scope{"aScopeItem"}).
+		Return(true)
+
+	s.api.
+		On("CreateToken", "anEntityID", []string(nil), time.Second*5).
+		Return(tk)
+
+	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
+		ID:       "anEntityID",
+		Password: "aPassword",
+	})
+
+	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{
+		Scope: []string{"aScopeItem"},
+	}))
+	s.Require().Equal(err, connect.NewError(connect.CodeInternal, nil))
+
+	l := s.logger.LastEntry()
+	s.Require().NotNil(l)
+	s.Assert().Equal(`{"level":"error","error":"theGetExpirationTimeError","entity_id":"anEntityID","message":"get access token expiration time failed"}`, l.String())
+}
+
+func (s *AuthenticateTestSuite) TestGetAccessTokenSignedStringError() {
+	cl := &api.ClaimsMock{}
+	cl.On("GetExpirationTime").
+		Return(&jwt.NumericDate{}, nil)
+
+	tk := &api.TokenMock{}
+	tk.
+		On("Claims").
+		Return(cl)
+	tk.
+		On("SignedString", "aSecretKey").
+		Return("", errors.New("theSignedStringError"))
 
 	s.api.
 		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
@@ -185,8 +233,8 @@ func (s *AuthenticateTestSuite) TestGetAccessTokenExpirationTimeError() {
 		Return(tk)
 
 	s.api.
-		On("GetTokenSignedString", tk).
-		Return("", errors.New("theGetTokenSignedStringError"))
+		On("SecretKey").
+		Return("aSecretKey")
 
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
 		ID:       "anEntityID",
@@ -200,7 +248,7 @@ func (s *AuthenticateTestSuite) TestGetAccessTokenExpirationTimeError() {
 
 	l := s.logger.LastEntry()
 	s.Require().NotNil(l)
-	s.Assert().Equal(`{"level":"error","error":"theGetTokenSignedStringError","entity_id":"anEntityID","message":"get access token signed string failed"}`, l.String())
+	s.Assert().Equal(`{"level":"error","error":"theSignedStringError","entity_id":"anEntityID","message":"get access token signed string failed"}`, l.String())
 }
 
 func TestHandler_Authenticate(t *testing.T) {
