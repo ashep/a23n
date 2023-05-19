@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/mock"
@@ -22,7 +23,7 @@ type EntityTestSuite struct {
 
 func (s *EntityTestSuite) SetupTest() {
 	s.db = &sqldb.DBMock{}
-	s.api = api.NewDefault(s.db, "abc")
+	s.api = api.NewDefault(s.db, "abc", time.Now)
 }
 
 func (s *EntityTestSuite) TearDownTest() {
