@@ -6,7 +6,7 @@ A simple authentication and authorization gRPC service.
 
 ```shell
 docker run --rm -it \
-  -e A23N_DB_DSN="postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" \
+  -e A23N_DB_DSN="postgres://postgres:postgres@localhost:5432/a23n?sslmode=disable" \
   -e A23N_SERVER_SECRET=$(for N in {1..12}; do echo -n $RANDOM; done | base64 | head -c 64) \
   ashep/a23n:latest
 ```

@@ -2,21 +2,28 @@ syntax = "proto3";
 package a23n.v1;
 option go_package = "github.com/ashep/a23n/sdk/proto/a23n/v1";
 
-message AuthenticateRequest {}
-message AuthenticateResponse {
-  string token = 1;
-  int64 expires = 2;
-}
-
-message AuthorizeRequest {
+message AuthenticateRequest {
   repeated string scope = 1;
 }
-message AuthorizeResponse {}
+message AuthenticateResponse {
+  string access_token = 1;
+  int64 access_token_expires = 2;
+  string refresh_token = 3;
+  int64 refresh_token_expires = 4;
+}
+
+message RefreshTokenRequest {}
+message RefreshTokenResponse {
+  string token = 1;
+  int64 token_expires = 2;
+  string refresh_token = 3;
+  int64 refresh_token_expires = 4;
+}
 
 message CreateEntityRequest {
   string secret = 1;
   repeated string scope = 2;
-  string note = 3;
+  map<string, string> attrs = 3;
 }
 
 message CreateEntityResponse {
@@ -27,7 +34,7 @@ message UpdateEntityRequest {
   string id = 1;
   string secret = 2;
   repeated string scope = 3;
-  string note = 4;
+  map<string, string> attrs = 4;
 }
 
 message UpdateEntityResponse {
@@ -45,7 +52,7 @@ message GetEntityResponse {
 
 service AuthService {
   rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
-  rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc CreateEntity(CreateEntityRequest) returns (CreateEntityResponse);
   rpc UpdateEntity(UpdateEntityRequest) returns (UpdateEntityResponse);
   rpc GetEntity(GetEntityRequest) returns (GetEntityResponse);

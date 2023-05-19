@@ -1,7 +1,6 @@
 package root
 
 import (
-	"database/sql"
 	"errors"
 	"math/rand"
 	"net/http"
@@ -16,6 +15,7 @@ import (
 	"github.com/ashep/a23n/logger"
 	"github.com/ashep/a23n/migration"
 	"github.com/ashep/a23n/server"
+	"github.com/ashep/a23n/sqldb"
 )
 
 var (
@@ -55,7 +55,7 @@ func New() *cobra.Command {
 				return
 			}
 
-			db, err := sql.Open("postgres", cfg.DB.DSN)
+			db, err := sqldb.NewPostgres(cfg.DB.DSN)
 			if err != nil {
 				l.Fatal().Err(err).Msg("failed to open db")
 				return
@@ -80,27 +80,36 @@ func New() *cobra.Command {
 				return
 			}
 
-			srvSec := os.Getenv("A23N_SERVER_SECRET")
-			if srvSec != "" {
-				cfg.Server.Secret = srvSec
+			secret := os.Getenv("A23N_SECRET")
+			if secret != "" {
+				cfg.Secret = secret
 			}
 
-			apiTokenTTL := os.Getenv("A23N_API_TOKEN_TTL")
-			if apiTokenTTL != "" {
-				t, _ := strconv.Atoi(apiTokenTTL)
-				cfg.API.TokenTTL = t
-			}
-			a, err := api.New(db, cfg.Server.Secret, cfg.API.TokenTTL)
-			if err != nil {
-				l.Fatal().Err(err).Msg("")
-				return
+			accessTokenTTL := os.Getenv("A23N_ACCESS_TOKEN_TTL")
+			if accessTokenTTL != "" {
+				t, _ := strconv.Atoi(accessTokenTTL)
+				cfg.AccessTokenTTL = uint(t)
 			}
 
-			srvAddr := os.Getenv("A23N_SERVER_ADDRESS")
-			if srvAddr != "" {
-				cfg.Server.Address = srvAddr
+			refreshTokenTTL := os.Getenv("A23N_REFRESH_TOKEN_TTL")
+			if refreshTokenTTL != "" {
+				t, _ := strconv.Atoi(refreshTokenTTL)
+				cfg.RefreshTokenTTL = uint(t)
 			}
-			s := server.New(cfg.Server, a, l.With().Str("pkg", "server").Logger())
+
+			a := api.NewDefault(db, cfg.Secret, time.Now)
+
+			addr := os.Getenv("A23N_ADDRESS")
+			if addr != "" {
+				cfg.Address = addr
+			}
+			s := server.New(
+				a,
+				cfg.Address,
+				time.Duration(cfg.AccessTokenTTL)*time.Second,
+				time.Duration(cfg.RefreshTokenTTL)*time.Second,
+				l.With().Str("pkg", "server").Logger(),
+			)
 
 			if err := s.Run(cmd.Context()); errors.Is(err, http.ErrServerClosed) {
 				l.Info().Msg("server stopped")

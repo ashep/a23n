@@ -28,7 +28,7 @@ const (
 // AuthServiceClient is a client for the a23n.v1.AuthService service.
 type AuthServiceClient interface {
 	Authenticate(context.Context, *connect_go.Request[v1.AuthenticateRequest]) (*connect_go.Response[v1.AuthenticateResponse], error)
-	Authorize(context.Context, *connect_go.Request[v1.AuthorizeRequest]) (*connect_go.Response[v1.AuthorizeResponse], error)
+	RefreshToken(context.Context, *connect_go.Request[v1.RefreshTokenRequest]) (*connect_go.Response[v1.RefreshTokenResponse], error)
 	CreateEntity(context.Context, *connect_go.Request[v1.CreateEntityRequest]) (*connect_go.Response[v1.CreateEntityResponse], error)
 	UpdateEntity(context.Context, *connect_go.Request[v1.UpdateEntityRequest]) (*connect_go.Response[v1.UpdateEntityResponse], error)
 	GetEntity(context.Context, *connect_go.Request[v1.GetEntityRequest]) (*connect_go.Response[v1.GetEntityResponse], error)
@@ -49,9 +49,9 @@ func NewAuthServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts
 			baseURL+"/a23n.v1.AuthService/Authenticate",
 			opts...,
 		),
-		authorize: connect_go.NewClient[v1.AuthorizeRequest, v1.AuthorizeResponse](
+		refreshToken: connect_go.NewClient[v1.RefreshTokenRequest, v1.RefreshTokenResponse](
 			httpClient,
-			baseURL+"/a23n.v1.AuthService/Authorize",
+			baseURL+"/a23n.v1.AuthService/RefreshToken",
 			opts...,
 		),
 		createEntity: connect_go.NewClient[v1.CreateEntityRequest, v1.CreateEntityResponse](
@@ -75,7 +75,7 @@ func NewAuthServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
 	authenticate *connect_go.Client[v1.AuthenticateRequest, v1.AuthenticateResponse]
-	authorize    *connect_go.Client[v1.AuthorizeRequest, v1.AuthorizeResponse]
+	refreshToken *connect_go.Client[v1.RefreshTokenRequest, v1.RefreshTokenResponse]
 	createEntity *connect_go.Client[v1.CreateEntityRequest, v1.CreateEntityResponse]
 	updateEntity *connect_go.Client[v1.UpdateEntityRequest, v1.UpdateEntityResponse]
 	getEntity    *connect_go.Client[v1.GetEntityRequest, v1.GetEntityResponse]
@@ -86,9 +86,9 @@ func (c *authServiceClient) Authenticate(ctx context.Context, req *connect_go.Re
 	return c.authenticate.CallUnary(ctx, req)
 }
 
-// Authorize calls a23n.v1.AuthService.Authorize.
-func (c *authServiceClient) Authorize(ctx context.Context, req *connect_go.Request[v1.AuthorizeRequest]) (*connect_go.Response[v1.AuthorizeResponse], error) {
-	return c.authorize.CallUnary(ctx, req)
+// RefreshToken calls a23n.v1.AuthService.RefreshToken.
+func (c *authServiceClient) RefreshToken(ctx context.Context, req *connect_go.Request[v1.RefreshTokenRequest]) (*connect_go.Response[v1.RefreshTokenResponse], error) {
+	return c.refreshToken.CallUnary(ctx, req)
 }
 
 // CreateEntity calls a23n.v1.AuthService.CreateEntity.
@@ -109,7 +109,7 @@ func (c *authServiceClient) GetEntity(ctx context.Context, req *connect_go.Reque
 // AuthServiceHandler is an implementation of the a23n.v1.AuthService service.
 type AuthServiceHandler interface {
 	Authenticate(context.Context, *connect_go.Request[v1.AuthenticateRequest]) (*connect_go.Response[v1.AuthenticateResponse], error)
-	Authorize(context.Context, *connect_go.Request[v1.AuthorizeRequest]) (*connect_go.Response[v1.AuthorizeResponse], error)
+	RefreshToken(context.Context, *connect_go.Request[v1.RefreshTokenRequest]) (*connect_go.Response[v1.RefreshTokenResponse], error)
 	CreateEntity(context.Context, *connect_go.Request[v1.CreateEntityRequest]) (*connect_go.Response[v1.CreateEntityResponse], error)
 	UpdateEntity(context.Context, *connect_go.Request[v1.UpdateEntityRequest]) (*connect_go.Response[v1.UpdateEntityResponse], error)
 	GetEntity(context.Context, *connect_go.Request[v1.GetEntityRequest]) (*connect_go.Response[v1.GetEntityResponse], error)
@@ -127,9 +127,9 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect_go.HandlerOpt
 		svc.Authenticate,
 		opts...,
 	))
-	mux.Handle("/a23n.v1.AuthService/Authorize", connect_go.NewUnaryHandler(
-		"/a23n.v1.AuthService/Authorize",
-		svc.Authorize,
+	mux.Handle("/a23n.v1.AuthService/RefreshToken", connect_go.NewUnaryHandler(
+		"/a23n.v1.AuthService/RefreshToken",
+		svc.RefreshToken,
 		opts...,
 	))
 	mux.Handle("/a23n.v1.AuthService/CreateEntity", connect_go.NewUnaryHandler(
@@ -157,8 +157,8 @@ func (UnimplementedAuthServiceHandler) Authenticate(context.Context, *connect_go
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("a23n.v1.AuthService.Authenticate is not implemented"))
 }
 
-func (UnimplementedAuthServiceHandler) Authorize(context.Context, *connect_go.Request[v1.AuthorizeRequest]) (*connect_go.Response[v1.AuthorizeResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("a23n.v1.AuthService.Authorize is not implemented"))
+func (UnimplementedAuthServiceHandler) RefreshToken(context.Context, *connect_go.Request[v1.RefreshTokenRequest]) (*connect_go.Response[v1.RefreshTokenResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("a23n.v1.AuthService.RefreshToken is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) CreateEntity(context.Context, *connect_go.Request[v1.CreateEntityRequest]) (*connect_go.Response[v1.CreateEntityResponse], error) {

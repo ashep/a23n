@@ -16,7 +16,7 @@ func Auth(l zerolog.Logger) connect.UnaryInterceptorFunc {
 			crd := credentials.Credentials{}
 			authHdr := req.Header().Get("Authorization")
 
-			if strings.HasPrefix(authHdr, "Basic") {
+			if strings.HasPrefix(authHdr, "Basic ") {
 				basicStr := strings.TrimPrefix(authHdr, "Basic ")
 				authB, err := base64.StdEncoding.DecodeString(basicStr)
 				if err != nil {
