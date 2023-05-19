@@ -26,12 +26,14 @@ type API interface {
 type DefaultAPI struct {
 	db        sqldb.DB
 	secretKey string
+	now       func() time.Time
 }
 
-func NewDefault(db sqldb.DB, secretKey string) *DefaultAPI {
+func NewDefault(db sqldb.DB, secretKey string, now func() time.Time) *DefaultAPI {
 	return &DefaultAPI{
 		db:        db,
 		secretKey: secretKey,
+		now:       now,
 	}
 }
 

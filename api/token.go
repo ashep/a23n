@@ -33,7 +33,7 @@ func (t *DefaultToken) SignedString(key interface{}) (string, error) {
 }
 
 func (a *DefaultAPI) CreateToken(subject string, scope []string, ttl time.Duration) Token {
-	n := jwt.NewNumericDate(time.Now())
+	n := jwt.NewNumericDate(a.now())
 
 	return &DefaultToken{
 		t: jwt.NewWithClaims(jwt.SigningMethodHS256, TokenClaims{

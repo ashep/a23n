@@ -50,7 +50,7 @@ func (s *AuthenticateTestSuite) TestNoAuthorizationHeader() {
 func (s *AuthenticateTestSuite) TestRequestEmptyEntityId() {
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
 		ID:       "",
-		Password: "aPassword",
+		Password: "password",
 	})
 
 	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{}))
@@ -60,12 +60,12 @@ func (s *AuthenticateTestSuite) TestRequestEmptyEntityId() {
 
 func (s *AuthenticateTestSuite) TestEntityNotFound() {
 	s.api.
-		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
 		Return(api.Entity{}, api.ErrNotFound)
 
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
-		ID:       "anEntityID",
-		Password: "aPassword",
+		ID:       "entityID",
+		Password: "password",
 	})
 
 	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{}))
@@ -73,17 +73,17 @@ func (s *AuthenticateTestSuite) TestEntityNotFound() {
 
 	l := s.logger.LastEntry()
 	s.Require().NotNil(l)
-	s.Assert().Equal(`{"level":"warn","entity_id":"anEntityID","message":"entity not found"}`, l.String())
+	s.Assert().Equal(`{"level":"warn","entity_id":"entityID","message":"entity not found"}`, l.String())
 }
 
 func (s *AuthenticateTestSuite) TestAPIGetEntityError() {
 	s.api.
-		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
-		Return(api.Entity{}, errors.New("theGetEntityError"))
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
+		Return(api.Entity{}, errors.New("getEntityError"))
 
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
-		ID:       "anEntityID",
-		Password: "aPassword",
+		ID:       "entityID",
+		Password: "password",
 	})
 
 	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{}))
@@ -91,21 +91,21 @@ func (s *AuthenticateTestSuite) TestAPIGetEntityError() {
 
 	l := s.logger.LastEntry()
 	s.Require().NotNil(l)
-	s.Assert().Equal(`{"level":"error","error":"theGetEntityError","entity_id":"anEntityID","message":"failed to get entity"}`, l.String())
+	s.Assert().Equal(`{"level":"error","error":"getEntityError","entity_id":"entityID","message":"failed to get entity"}`, l.String())
 }
 
 func (s *AuthenticateTestSuite) TestAPICheckSecretError() {
 	s.api.
-		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
 		Return(api.Entity{}, nil)
 
 	s.api.
-		On("CheckSecret", "anEntityID", "aPassword").
+		On("CheckSecret", "entityID", "password").
 		Return(false, errors.New("theCheckSecretError"))
 
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
-		ID:       "anEntityID",
-		Password: "aPassword",
+		ID:       "entityID",
+		Password: "password",
 	})
 
 	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{}))
@@ -113,21 +113,21 @@ func (s *AuthenticateTestSuite) TestAPICheckSecretError() {
 
 	l := s.logger.LastEntry()
 	s.Require().NotNil(l)
-	s.Assert().Equal(`{"level":"error","error":"theCheckSecretError","entity_id":"anEntityID","message":"check secret failed"}`, l.String())
+	s.Assert().Equal(`{"level":"error","error":"theCheckSecretError","entity_id":"entityID","message":"check secret failed"}`, l.String())
 }
 
 func (s *AuthenticateTestSuite) TestInvalidSecret() {
 	s.api.
-		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
 		Return(api.Entity{}, nil)
 
 	s.api.
-		On("CheckSecret", "anEntityID", "aPassword").
+		On("CheckSecret", "entityID", "password").
 		Return(false, nil)
 
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
-		ID:       "anEntityID",
-		Password: "aPassword",
+		ID:       "entityID",
+		Password: "password",
 	})
 
 	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{}))
@@ -138,24 +138,24 @@ func (s *AuthenticateTestSuite) TestInvalidSecret() {
 
 func (s *AuthenticateTestSuite) TestOutOfScope() {
 	s.api.
-		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
-		Return(api.Entity{ID: "anEntityID"}, nil)
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
+		Return(api.Entity{ID: "entityID"}, nil)
 
 	s.api.
-		On("CheckSecret", "anEntityID", "aPassword").
+		On("CheckSecret", "entityID", "password").
 		Return(true, nil)
 
 	s.api.
-		On("CheckScope", api.Scope(nil), api.Scope{"aScopeItem"}).
+		On("CheckScope", api.Scope(nil), api.Scope{"scopeItem"}).
 		Return(false)
 
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
-		ID:       "anEntityID",
-		Password: "aPassword",
+		ID:       "entityID",
+		Password: "password",
 	})
 
 	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{
-		Scope: []string{"aScopeItem"},
+		Scope: []string{"scopeItem"},
 	}))
 	s.Require().Equal(err, connect.NewError(connect.CodePermissionDenied, nil))
 
@@ -165,7 +165,7 @@ func (s *AuthenticateTestSuite) TestOutOfScope() {
 func (s *AuthenticateTestSuite) TestGetAccessTokenExpirationTimeError() {
 	cl := &api.ClaimsMock{}
 	cl.On("GetExpirationTime").
-		Return(&jwt.NumericDate{}, errors.New("theGetExpirationTimeError"))
+		Return(&jwt.NumericDate{}, errors.New("accessTokenExpirationTimeError"))
 
 	tk := &api.TokenMock{}
 	tk.
@@ -173,34 +173,34 @@ func (s *AuthenticateTestSuite) TestGetAccessTokenExpirationTimeError() {
 		Return(cl)
 
 	s.api.
-		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
-		Return(api.Entity{ID: "anEntityID"}, nil)
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
+		Return(api.Entity{ID: "entityID"}, nil)
 
 	s.api.
-		On("CheckSecret", "anEntityID", "aPassword").
+		On("CheckSecret", "entityID", "password").
 		Return(true, nil)
 
 	s.api.
-		On("CheckScope", api.Scope(nil), api.Scope{"aScopeItem"}).
+		On("CheckScope", api.Scope(nil), api.Scope{"scopeItem"}).
 		Return(true)
 
 	s.api.
-		On("CreateToken", "anEntityID", []string(nil), time.Second*5).
+		On("CreateToken", "entityID", []string(nil), time.Second*5).
 		Return(tk)
 
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
-		ID:       "anEntityID",
-		Password: "aPassword",
+		ID:       "entityID",
+		Password: "password",
 	})
 
 	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{
-		Scope: []string{"aScopeItem"},
+		Scope: []string{"scopeItem"},
 	}))
 	s.Require().Equal(err, connect.NewError(connect.CodeInternal, nil))
 
 	l := s.logger.LastEntry()
 	s.Require().NotNil(l)
-	s.Assert().Equal(`{"level":"error","error":"theGetExpirationTimeError","entity_id":"anEntityID","message":"get access token expiration time failed"}`, l.String())
+	s.Assert().Equal(`{"level":"error","error":"accessTokenExpirationTimeError","entity_id":"entityID","message":"get access token expiration time failed"}`, l.String())
 }
 
 func (s *AuthenticateTestSuite) TestGetAccessTokenSignedStringError() {
@@ -213,42 +213,236 @@ func (s *AuthenticateTestSuite) TestGetAccessTokenSignedStringError() {
 		On("Claims").
 		Return(cl)
 	tk.
-		On("SignedString", "aSecretKey").
-		Return("", errors.New("theSignedStringError"))
+		On("SignedString", "secretKey").
+		Return("", errors.New("accessTokenSignedStringError"))
 
 	s.api.
-		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "anEntityID").
-		Return(api.Entity{ID: "anEntityID"}, nil)
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
+		Return(api.Entity{ID: "entityID"}, nil)
 
 	s.api.
-		On("CheckSecret", "anEntityID", "aPassword").
+		On("CheckSecret", "entityID", "password").
 		Return(true, nil)
 
 	s.api.
-		On("CheckScope", api.Scope(nil), api.Scope{"aScopeItem"}).
+		On("CheckScope", api.Scope(nil), api.Scope{"scopeItem"}).
 		Return(true)
 
 	s.api.
-		On("CreateToken", "anEntityID", []string(nil), time.Second*5).
+		On("CreateToken", "entityID", []string(nil), time.Second*5).
 		Return(tk)
 
 	s.api.
 		On("SecretKey").
-		Return("aSecretKey")
+		Return("secretKey")
 
 	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
-		ID:       "anEntityID",
-		Password: "aPassword",
+		ID:       "entityID",
+		Password: "password",
 	})
 
 	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{
-		Scope: []string{"aScopeItem"},
+		Scope: []string{"scopeItem"},
 	}))
 	s.Require().Equal(err, connect.NewError(connect.CodeInternal, nil))
 
 	l := s.logger.LastEntry()
 	s.Require().NotNil(l)
-	s.Assert().Equal(`{"level":"error","error":"theSignedStringError","entity_id":"anEntityID","message":"get access token signed string failed"}`, l.String())
+	s.Assert().Equal(`{"level":"error","error":"accessTokenSignedStringError","entity_id":"entityID","message":"get access token signed string failed"}`, l.String())
+}
+
+func (s *AuthenticateTestSuite) TestGetRefreshTokenExpirationTimeError() {
+	atCl := &api.ClaimsMock{}
+	atCl.On("GetExpirationTime").
+		Return(&jwt.NumericDate{}, nil)
+
+	at := &api.TokenMock{}
+	at.
+		On("Claims").
+		Return(atCl)
+	at.
+		On("SignedString", "secretKey").
+		Return("accessTokenSignedString", nil)
+
+	rtCl := &api.ClaimsMock{}
+	rtCl.On("GetExpirationTime").
+		Return(&jwt.NumericDate{}, errors.New("refreshTokenExpirationTimeError"))
+
+	rt := &api.TokenMock{}
+	rt.
+		On("Claims").
+		Return(rtCl)
+
+	s.api.
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
+		Return(api.Entity{ID: "entityID"}, nil)
+
+	s.api.
+		On("CheckSecret", "entityID", "password").
+		Return(true, nil)
+
+	s.api.
+		On("CheckScope", api.Scope(nil), api.Scope{"scopeItem"}).
+		Return(true)
+
+	s.api.
+		On("SecretKey").
+		Return("secretKey")
+
+	s.api.
+		On("CreateToken", "entityID", []string(nil), time.Second*5).
+		Return(at)
+
+	s.api.
+		On("CreateToken", "entityID_refresh", []string(nil), time.Second*10).
+		Return(rt)
+
+	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
+		ID:       "entityID",
+		Password: "password",
+	})
+
+	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{
+		Scope: []string{"scopeItem"},
+	}))
+	s.Require().Equal(err, connect.NewError(connect.CodeInternal, nil))
+
+	l := s.logger.LastEntry()
+	s.Require().NotNil(l)
+	s.Assert().Equal(`{"level":"error","error":"refreshTokenExpirationTimeError","entity_id":"entityID","message":"get refresh token expiration time failed"}`, l.String())
+}
+
+func (s *AuthenticateTestSuite) TestGetRefreshTokenSignedStringError() {
+	atCl := &api.ClaimsMock{}
+	atCl.On("GetExpirationTime").
+		Return(&jwt.NumericDate{}, nil)
+
+	at := &api.TokenMock{}
+	at.
+		On("Claims").
+		Return(atCl)
+	at.
+		On("SignedString", "secretKey").
+		Return("accessTokenSignedString", nil)
+
+	rtCl := &api.ClaimsMock{}
+	rtCl.On("GetExpirationTime").
+		Return(&jwt.NumericDate{}, nil)
+
+	rt := &api.TokenMock{}
+	rt.
+		On("Claims").
+		Return(rtCl)
+	rt.
+		On("SignedString", "secretKey").
+		Return("", errors.New("refreshTokenSignedStringError"))
+
+	s.api.
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
+		Return(api.Entity{ID: "entityID"}, nil)
+
+	s.api.
+		On("CheckSecret", "entityID", "password").
+		Return(true, nil)
+
+	s.api.
+		On("CheckScope", api.Scope(nil), api.Scope{"scopeItem"}).
+		Return(true)
+
+	s.api.
+		On("SecretKey").
+		Return("secretKey")
+
+	s.api.
+		On("CreateToken", "entityID", []string(nil), time.Second*5).
+		Return(at)
+
+	s.api.
+		On("CreateToken", "entityID_refresh", []string(nil), time.Second*10).
+		Return(rt)
+
+	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
+		ID:       "entityID",
+		Password: "password",
+	})
+
+	_, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{
+		Scope: []string{"scopeItem"},
+	}))
+	s.Require().Equal(err, connect.NewError(connect.CodeInternal, nil))
+
+	l := s.logger.LastEntry()
+	s.Require().NotNil(l)
+	s.Assert().Equal(`{"level":"error","error":"refreshTokenSignedStringError","entity_id":"entityID","message":"get refresh token signed string failed"}`, l.String())
+}
+
+func (s *AuthenticateTestSuite) TestOK() {
+	atCl := &api.ClaimsMock{}
+	atCl.On("GetExpirationTime").
+		Return(&jwt.NumericDate{Time: time.Unix(123456789, 0)}, nil)
+
+	at := &api.TokenMock{}
+	at.
+		On("Claims").
+		Return(atCl)
+	at.
+		On("SignedString", "secretKey").
+		Return("accessTokenSignedString", nil)
+
+	rtCl := &api.ClaimsMock{}
+	rtCl.On("GetExpirationTime").
+		Return(&jwt.NumericDate{Time: time.Unix(234567890, 0)}, nil)
+
+	rt := &api.TokenMock{}
+	rt.
+		On("Claims").
+		Return(rtCl)
+	rt.
+		On("SignedString", "secretKey").
+		Return("refreshTokenSignedString", nil)
+
+	s.api.
+		On("GetEntity", mock.AnythingOfType("*context.valueCtx"), "entityID").
+		Return(api.Entity{ID: "entityID"}, nil)
+
+	s.api.
+		On("CheckSecret", "entityID", "password").
+		Return(true, nil)
+
+	s.api.
+		On("CheckScope", api.Scope(nil), api.Scope{"scopeItem"}).
+		Return(true)
+
+	s.api.
+		On("SecretKey").
+		Return("secretKey")
+
+	s.api.
+		On("CreateToken", "entityID", []string(nil), time.Second*5).
+		Return(at)
+
+	s.api.
+		On("CreateToken", "entityID_refresh", []string(nil), time.Second*10).
+		Return(rt)
+
+	ctx := context.WithValue(context.Background(), "crd", credentials.Credentials{
+		ID:       "entityID",
+		Password: "password",
+	})
+
+	r, err := s.handler.Authenticate(ctx, connect.NewRequest(&v1.AuthenticateRequest{
+		Scope: []string{"scopeItem"},
+	}))
+	s.Require().NoError(err)
+
+	s.Assert().Equal("accessTokenSignedString", r.Msg.AccessToken)
+	s.Assert().Equal(int64(123456789), r.Msg.AccessTokenExpires)
+	s.Assert().Equal("refreshTokenSignedString", r.Msg.RefreshToken)
+	s.Assert().Equal(int64(234567890), r.Msg.RefreshTokenExpires)
+
+	l := s.logger.LastEntry()
+	s.Require().NotNil(l)
+	s.Assert().Equal(`{"level":"info","entity_id":"entityID","access_token_expires":123456789,"refresh_token_expires":234567890,"message":"authenticated by password"}`, l.String())
 }
 
 func TestHandler_Authenticate(t *testing.T) {

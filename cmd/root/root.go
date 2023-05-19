@@ -97,7 +97,7 @@ func New() *cobra.Command {
 				cfg.RefreshTokenTTL = uint(t)
 			}
 
-			a := api.NewDefault(db, cfg.Secret)
+			a := api.NewDefault(db, cfg.Secret, time.Now)
 
 			addr := os.Getenv("A23N_ADDRESS")
 			if addr != "" {

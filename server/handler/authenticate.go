@@ -70,7 +70,8 @@ func (h *Handler) Authenticate(
 
 	h.l.Info().
 		Str("entity_id", crd.ID).
-		Str("expires", accessTokenExp.String()).
+		Int64("access_token_expires", accessTokenExp.Unix()).
+		Int64("refresh_token_expires", refreshTokenExp.Unix()).
 		Msg("authenticated by password")
 
 	return connect.NewResponse(&v1.AuthenticateResponse{
